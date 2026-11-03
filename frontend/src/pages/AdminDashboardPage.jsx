@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { StatCard } from '../components/common/StatCard';
+import { InviteEmployeeModal } from '../components/users/InviteEmployeeModal';
 import apiClient from '../api/client';
 import {
   Layers,
@@ -27,6 +28,7 @@ export const AdminDashboardPage = () => {
     delayed: 0,
   });
   const [loading, setLoading] = useState(true);
+  const [inviteModalOpen, setInviteModalOpen] = useState(false);
 
   useEffect(() => {
     // In Phase 1 foundation, test backend health and initialize counters
@@ -85,16 +87,21 @@ export const AdminDashboardPage = () => {
               <PlusCircle className="w-4 h-4" />
               New Production Task
             </a>
-            <a
-              href="/admin/users/invite"
+            <button
+              onClick={() => setInviteModalOpen(true)}
               className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs backdrop-blur-sm transition-colors border border-white/15"
             >
               <UserPlus className="w-4 h-4" />
               Invite Employee
-            </a>
+            </button>
           </div>
         </div>
       </div>
+
+      <InviteEmployeeModal
+        isOpen={inviteModalOpen}
+        onClose={() => setInviteModalOpen(false)}
+      />
 
       {/* Production KPIs Grid */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">

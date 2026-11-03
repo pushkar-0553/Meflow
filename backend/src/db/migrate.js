@@ -73,7 +73,7 @@ const MIGRATIONS = [
   `CREATE TABLE IF NOT EXISTS sessions (
     sid VARCHAR(128) NOT NULL PRIMARY KEY,
     sess JSON NOT NULL,
-    expired TIMESTAMP NOT NULL,
+    expired INT UNSIGNED NOT NULL,
     INDEX idx_sessions_expired (expired)
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;`,
 
@@ -266,3 +266,4 @@ if (process.argv[1]?.endsWith('migrate.js')) {
     .then(() => process.exit(0))
     .catch(() => process.exit(1));
 }
+

@@ -10,6 +10,8 @@ import { errorHandler } from './middleware/errorHandler.js';
 import { errorResponse } from './utils/apiResponse.js';
 
 import healthRoutes from './routes/health.routes.js';
+import authRoutes from './routes/auth.routes.js';
+import roleRoutes from './routes/role.routes.js';
 
 const app = express();
 
@@ -54,6 +56,8 @@ app.use(sessionMiddleware);
 
 // API Routes
 app.use('/api/health', healthRoutes);
+app.use('/api/auth', authRoutes);
+app.use('/api/roles', roleRoutes);
 
 // Catch-all 404 Route
 app.use('/api/*', (req, res) => {
@@ -68,3 +72,4 @@ app.use('/api/*', (req, res) => {
 app.use(errorHandler);
 
 export default app;
+

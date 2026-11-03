@@ -12,3 +12,4 @@ export const logger = {
     console.error(`\x1b[31m[ERROR]\x1b[0m ${new Date().toISOString()} - ${msg}`, error ? error : '');
   },
 };
+

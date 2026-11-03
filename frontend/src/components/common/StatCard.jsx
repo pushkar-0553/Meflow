@@ -76,3 +76,4 @@ export const StatCard = ({
     </div>
   );
 };
+

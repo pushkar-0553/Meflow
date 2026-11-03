@@ -108,3 +108,4 @@ export const Navbar = () => {
     </header>
   );
 };
+

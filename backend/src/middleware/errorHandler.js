@@ -49,3 +49,4 @@ export function errorHandler(err, req, res, next) {
     ...(env.isDev && { details: err.stack }),
   });
 }
+

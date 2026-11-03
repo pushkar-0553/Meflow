@@ -40,3 +40,4 @@ export const env = {
   isDev: (process.env.NODE_ENV || 'development') === 'development',
   isProd: process.env.NODE_ENV === 'production',
 };
+

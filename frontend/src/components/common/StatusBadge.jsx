@@ -49,3 +49,4 @@ export const StatusBadge = ({ status, className = '' }) => {
     </span>
   );
 };
+

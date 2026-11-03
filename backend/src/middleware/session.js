@@ -11,7 +11,7 @@ let sessionStore;
 try {
   sessionStore = new MySQLStore(
     {
-      createDatabaseTable: true, // Automatically creates `sessions` table if not exists
+      createDatabaseTable: false,
       schema: {
         tableName: 'sessions',
         columnNames: {
@@ -43,3 +43,4 @@ export const sessionMiddleware = session({
     maxAge: 2.5 * 60 * 60 * 1000, // 2.5 hours in milliseconds
   },
 });
+

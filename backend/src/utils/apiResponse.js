@@ -33,3 +33,4 @@ export const errorResponse = (res, {
   };
   return res.status(statusCode).json(payload);
 };
+
