@@ -319,6 +319,7 @@ export const authController = {
           inviteUrl, // Exposed in response for rapid testing/clicking in development
           emailDispatched: emailResult.success,
           emailProvider: emailResult.provider,
+          emailError: emailResult.error || null,
         },
       });
     } catch (error) {

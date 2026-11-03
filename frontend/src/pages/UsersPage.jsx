@@ -84,10 +84,13 @@ export const UsersPage = () => {
     try {
       const res = await apiClient.post(`/users/${user.id}/resend-invite`);
       if (res.success) {
-        toast.success(`Invitation re-dispatched to ${user.email} via Resend!`);
+        if (res.data?.emailDispatched) {
+          toast.success(`Invitation email sent to ${user.email} via Resend!`);
+        } else {
+          toast.success(`New onboarding link generated and copied to clipboard!`);
+        }
         if (res.data?.inviteUrl) {
           navigator.clipboard.writeText(res.data.inviteUrl);
-          toast.info('New onboarding link copied to clipboard.');
         }
       }
     } catch (err) {

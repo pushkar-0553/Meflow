@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import apiClient from '../../api/client';
 import { useToast } from '../../context/ToastContext';
-import { X, UserPlus, Mail, Shield, Building, Phone, Copy, Check, Send } from 'lucide-react';
+import { X, UserPlus, Mail, Shield, Building, Phone, Copy, Check, Send, AlertTriangle } from 'lucide-react';
 
 export const InviteEmployeeModal = ({ isOpen, onClose, onUserInvited }) => {
   const [name, setName] = useState('');
@@ -132,11 +132,28 @@ export const InviteEmployeeModal = ({ isOpen, onClose, onUserInvited }) => {
                   ) : (
                     <>
                       Single-use onboarding token generated for{' '}
-                      <strong className="text-slate-800">{inviteResult.user.email}</strong>. Copy the link below to share with the employee.
+                      <strong className="text-slate-800">{inviteResult.user.email}</strong>.
                     </>
                   )}
                 </p>
               </div>
+
+              {/* Resend Testing Sandbox Warning if not delivered directly */}
+              {!inviteResult.emailDispatched && (
+                <div className="p-3.5 bg-amber-50 border border-amber-200/80 rounded-2xl text-left space-y-1.5">
+                  <div className="flex items-center gap-1.5 font-bold text-amber-900 text-xs">
+                    <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0" />
+                    <span>Resend Sandbox Notice (No Direct Email Sent)</span>
+                  </div>
+                  <p className="text-[11px] text-amber-800 leading-relaxed">
+                    Resend free accounts only send live emails to your account owner address (<strong>vcube.projects.pushkar@gmail.com</strong>).
+                    To onboard other recipients directly to their inbox, add your domain at <a href="https://resend.com/domains" target="_blank" rel="noreferrer" className="underline font-bold text-amber-950">resend.com/domains</a>.
+                  </p>
+                  <p className="text-[11px] font-semibold text-amber-900">
+                    👉 In the meantime, simply copy the direct link below and share it with the employee via WhatsApp, Slack, or email:
+                  </p>
+                </div>
+              )}
 
               {/* Direct Link Card */}
               <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 text-left space-y-2">

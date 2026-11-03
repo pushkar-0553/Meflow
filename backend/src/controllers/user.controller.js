@@ -318,6 +318,7 @@ export const userController = {
           userId,
           inviteUrl,
           emailDispatched: emailResult.success,
+          emailError: emailResult.error || null,
         },
       });
     } catch (error) {
