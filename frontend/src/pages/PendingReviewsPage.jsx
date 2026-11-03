@@ -4,6 +4,7 @@ import { useToast } from '../context/ToastContext';
 import { StatusBadge } from '../components/common/StatusBadge';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
 import { ReviewCutModal } from '../components/workflow/ReviewCutModal';
+import { StageProofsModal } from '../components/proofs/StageProofsModal';
 import {
   ShieldCheck,
   CheckCircle,
@@ -14,12 +15,14 @@ import {
   AlertTriangle,
   PlaySquare,
   Sparkles,
+  FileCheck2,
 } from 'lucide-react';
 
 export const PendingReviewsPage = () => {
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeReviewStage, setActiveReviewStage] = useState(null);
+  const [activeViewProofsStage, setActiveViewProofsStage] = useState(null);
   const toast = useToast();
 
   const fetchPendingReviews = async () => {
@@ -132,6 +135,16 @@ export const PendingReviewsPage = () => {
 
               {/* Action Button */}
               <div className="shrink-0 flex items-center gap-2">
+                {cut.proof_count > 0 && (
+                  <button
+                    onClick={() => setActiveViewProofsStage(cut)}
+                    className="px-3.5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors"
+                  >
+                    <FileCheck2 className="w-3.5 h-3.5 text-blue-600" />
+                    Deliverables ({cut.proof_count})
+                  </button>
+                )}
+
                 <button
                   onClick={() => setActiveReviewStage(cut)}
                   className="px-5 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold flex items-center gap-2 transition-colors shadow-xs shadow-purple-500/20"
@@ -154,6 +167,16 @@ export const PendingReviewsPage = () => {
           onSuccess={fetchPendingReviews}
         />
       )}
+
+      {/* View Proofs Modal */}
+      {activeViewProofsStage && (
+        <StageProofsModal
+          stage={activeViewProofsStage}
+          isOpen={Boolean(activeViewProofsStage)}
+          onClose={() => setActiveViewProofsStage(null)}
+        />
+      )}
     </div>
   );
 };
+

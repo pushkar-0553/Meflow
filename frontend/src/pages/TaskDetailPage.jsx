@@ -7,6 +7,8 @@ import { StatusBadge } from '../components/common/StatusBadge';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
 import { ReviewCutModal } from '../components/workflow/ReviewCutModal';
 import { CompleteStageModal } from '../components/workflow/CompleteStageModal';
+import { UploadProofModal } from '../components/proofs/UploadProofModal';
+import { StageProofsModal } from '../components/proofs/StageProofsModal';
 import {
   ArrowLeft,
   Calendar,
@@ -23,6 +25,8 @@ import {
   RotateCcw,
   ShieldCheck,
   CheckCircle,
+  FileCheck2,
+  UploadCloud,
 } from 'lucide-react';
 
 export const TaskDetailPage = () => {
@@ -40,6 +44,8 @@ export const TaskDetailPage = () => {
   const [selectedUserId, setSelectedUserId] = useState('');
   const [activeReviewStage, setActiveReviewStage] = useState(null);
   const [activeCompleteStage, setActiveCompleteStage] = useState(null);
+  const [activeUploadProofStage, setActiveUploadProofStage] = useState(null);
+  const [activeViewProofsStage, setActiveViewProofsStage] = useState(null);
 
   const fetchTaskDetails = async () => {
     try {
@@ -255,6 +261,26 @@ export const TaskDetailPage = () => {
                       </span>
                     )}
 
+                    {/* View Proofs Button */}
+                    <button
+                      onClick={() => setActiveViewProofsStage({ ...stage, task_title: task.title })}
+                      className="px-2.5 py-1 text-xs font-bold text-slate-600 hover:text-slate-900 bg-white hover:bg-slate-100 border border-slate-200 rounded-xl transition-colors flex items-center gap-1 shadow-2xs"
+                    >
+                      <FileCheck2 className="w-3.5 h-3.5 text-blue-600" />
+                      Proofs
+                    </button>
+
+                    {/* Upload Proof Button for active assignee or admin */}
+                    {(stage.assignee_id === user?.id || isAdmin) && stage.status !== 'APPROVED' && (
+                      <button
+                        onClick={() => setActiveUploadProofStage({ ...stage, task_title: task.title })}
+                        title="Upload deliverable or proof for this stage"
+                        className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors"
+                      >
+                        <UploadCloud className="w-4 h-4" />
+                      </button>
+                    )}
+
                     {/* Review Cut Action Button */}
                     {stage.status === 'SUBMITTED' && (isAdmin || hasPermission('approval.review')) && (
                       <button
@@ -359,6 +385,29 @@ export const TaskDetailPage = () => {
           isOpen={Boolean(activeCompleteStage)}
           onClose={() => setActiveCompleteStage(null)}
           onSuccess={fetchTaskDetails}
+        />
+      )}
+
+      {/* Upload Proof Modal */}
+      {activeUploadProofStage && (
+        <UploadProofModal
+          stage={activeUploadProofStage}
+          isOpen={Boolean(activeUploadProofStage)}
+          onClose={() => setActiveUploadProofStage(null)}
+          onSuccess={fetchTaskDetails}
+        />
+      )}
+
+      {/* View Proofs Modal */}
+      {activeViewProofsStage && (
+        <StageProofsModal
+          stage={activeViewProofsStage}
+          isOpen={Boolean(activeViewProofsStage)}
+          onClose={() => setActiveViewProofsStage(null)}
+          onUploadNew={(stg) => {
+            setActiveViewProofsStage(null);
+            setActiveUploadProofStage(stg);
+          }}
         />
       )}
     </div>

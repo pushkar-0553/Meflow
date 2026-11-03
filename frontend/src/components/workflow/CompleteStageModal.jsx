@@ -137,3 +137,4 @@ export const CompleteStageModal = ({ stage, isOpen, onClose, onSuccess }) => {
     </div>
   );
 };
+

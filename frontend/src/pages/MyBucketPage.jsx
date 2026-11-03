@@ -5,6 +5,8 @@ import { useToast } from '../context/ToastContext';
 import { StatusBadge } from '../components/common/StatusBadge';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
 import { CompleteStageModal } from '../components/workflow/CompleteStageModal';
+import { UploadProofModal } from '../components/proofs/UploadProofModal';
+import { StageProofsModal } from '../components/proofs/StageProofsModal';
 import {
   CheckSquare,
   Play,
@@ -18,6 +20,7 @@ import {
   AlertTriangle,
   CheckCircle,
   MessageSquare,
+  FileCheck2,
 } from 'lucide-react';
 
 export const MyBucketPage = () => {
@@ -25,6 +28,8 @@ export const MyBucketPage = () => {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all'); // all, today, in_progress, completed, delayed
   const [activeCompleteStage, setActiveCompleteStage] = useState(null);
+  const [activeUploadProofStage, setActiveUploadProofStage] = useState(null);
+  const [activeViewProofsStage, setActiveViewProofsStage] = useState(null);
   const toast = useToast();
   const navigate = useNavigate();
 
@@ -263,12 +268,23 @@ export const MyBucketPage = () => {
                   </button>
                 )}
 
+                {/* View Proofs Button */}
+                {item.proof_count > 0 && (
+                  <button
+                    onClick={() => setActiveViewProofsStage(item)}
+                    className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors"
+                  >
+                    <FileCheck2 className="w-3.5 h-3.5 text-blue-600" />
+                    Proofs ({item.proof_count})
+                  </button>
+                )}
+
                 {/* Upload Proof button */}
                 <button
-                  onClick={() => toast.info('Phase 7: Proof Upload modal connects here.')}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors shadow-xs shadow-blue-500/20"
+                  onClick={() => setActiveUploadProofStage(item)}
+                  className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors shadow-xs shadow-blue-500/20"
                 >
-                  <UploadCloud className="w-4 h-4" />
+                  <UploadCloud className="w-3.5 h-3.5" />
                   Upload Proof
                 </button>
               </div>
@@ -284,6 +300,29 @@ export const MyBucketPage = () => {
           isOpen={Boolean(activeCompleteStage)}
           onClose={() => setActiveCompleteStage(null)}
           onSuccess={fetchMyBucket}
+        />
+      )}
+
+      {/* Upload Proof Modal */}
+      {activeUploadProofStage && (
+        <UploadProofModal
+          stage={activeUploadProofStage}
+          isOpen={Boolean(activeUploadProofStage)}
+          onClose={() => setActiveUploadProofStage(null)}
+          onSuccess={fetchMyBucket}
+        />
+      )}
+
+      {/* View Proofs Modal */}
+      {activeViewProofsStage && (
+        <StageProofsModal
+          stage={activeViewProofsStage}
+          isOpen={Boolean(activeViewProofsStage)}
+          onClose={() => setActiveViewProofsStage(null)}
+          onUploadNew={(stg) => {
+            setActiveViewProofsStage(null);
+            setActiveUploadProofStage(stg);
+          }}
         />
       )}
     </div>
