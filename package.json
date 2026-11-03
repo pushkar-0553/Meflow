@@ -1,0 +1,22 @@
+{
+  "name": "vcube-meflow",
+  "version": "1.0.0",
+  "description": "Digital Marketing Team HRMS & Content Production Management System",
+  "private": true,
+  "scripts": {
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "cd frontend && npm run dev",
+    "migrate": "cd backend && npm run migrate",
+    "seed": "cd backend && npm run seed",
+    "build": "cd frontend && npm run build"
+  },
+  "keywords": [
+    "digital-marketing",
+    "hrms",
+    "production-management",
+    "workflow",
+    "content-pipeline"
+  ],
+  "author": "VCube Team",
+  "license": "ISC"
+}
