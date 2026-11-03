@@ -17,6 +17,8 @@ import { TaskDetailPage } from './pages/TaskDetailPage';
 import { AvailableWorkPage } from './pages/AvailableWorkPage';
 import { MyBucketPage } from './pages/MyBucketPage';
 import { PendingReviewsPage } from './pages/PendingReviewsPage';
+import { MasterCalendarPage } from './pages/MasterCalendarPage';
+import { PersonalCalendarPage } from './pages/PersonalCalendarPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 
 // Smart Home Redirector based on User Role
@@ -51,7 +53,7 @@ export function App() {
               <Route path="users/:id" element={<UserDetailPage />} />
               <Route path="roles" element={<RolesPage />} />
               <Route path="workload" element={<div className="p-8 text-center text-slate-500 font-bold bg-white rounded-3xl border border-slate-200">Phase 10: Team Capacity & Workload Hub</div>} />
-              <Route path="calendar" element={<div className="p-8 text-center text-slate-500 font-bold bg-white rounded-3xl border border-slate-200">Phase 9: Production Calendar</div>} />
+              <Route path="calendar" element={<MasterCalendarPage />} />
               <Route path="publishing" element={<div className="p-8 text-center text-slate-500 font-bold bg-white rounded-3xl border border-slate-200">Phase 6: Published Social Media Content Archive</div>} />
               <Route path="audit" element={<div className="p-8 text-center text-slate-500 font-bold bg-white rounded-3xl border border-slate-200">Phase 11: System Audit Ledger</div>} />
             </Route>
@@ -61,7 +63,7 @@ export function App() {
               <Route path="/dashboard" element={<EmployeeDashboardPage />} />
               <Route path="/available-work" element={<AvailableWorkPage />} />
               <Route path="/my-bucket" element={<MyBucketPage />} />
-              <Route path="/my-calendar" element={<div className="p-8 text-center text-slate-500 font-bold bg-white rounded-3xl border border-slate-200">Phase 9: Personal Work Schedule</div>} />
+              <Route path="/my-calendar" element={<PersonalCalendarPage />} />
             </Route>
 
             {/* 404 Catch-all */}
