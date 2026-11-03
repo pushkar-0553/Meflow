@@ -20,6 +20,7 @@ import workflowRoutes from './routes/workflow.routes.js';
 import proofRoutes from './routes/proof.routes.js';
 import notificationRoutes from './routes/notification.routes.js';
 import calendarRoutes from './routes/calendar.routes.js';
+import workloadRoutes from './routes/workload.routes.js';
 
 const app = express();
 
@@ -74,6 +75,7 @@ app.use('/api/workflow', workflowRoutes);
 app.use('/api/proofs', proofRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/calendar', calendarRoutes);
+app.use('/api/workload', workloadRoutes);
 
 // Catch-all 404 Route
 app.use('/api/*', (req, res) => {

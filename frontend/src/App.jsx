@@ -19,6 +19,7 @@ import { MyBucketPage } from './pages/MyBucketPage';
 import { PendingReviewsPage } from './pages/PendingReviewsPage';
 import { MasterCalendarPage } from './pages/MasterCalendarPage';
 import { PersonalCalendarPage } from './pages/PersonalCalendarPage';
+import { WorkloadHubPage } from './pages/WorkloadHubPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 
 // Smart Home Redirector based on User Role
@@ -52,7 +53,7 @@ export function App() {
               <Route path="users" element={<UsersPage />} />
               <Route path="users/:id" element={<UserDetailPage />} />
               <Route path="roles" element={<RolesPage />} />
-              <Route path="workload" element={<div className="p-8 text-center text-slate-500 font-bold bg-white rounded-3xl border border-slate-200">Phase 10: Team Capacity & Workload Hub</div>} />
+              <Route path="workload" element={<WorkloadHubPage />} />
               <Route path="calendar" element={<MasterCalendarPage />} />
               <Route path="publishing" element={<div className="p-8 text-center text-slate-500 font-bold bg-white rounded-3xl border border-slate-200">Phase 6: Published Social Media Content Archive</div>} />
               <Route path="audit" element={<div className="p-8 text-center text-slate-500 font-bold bg-white rounded-3xl border border-slate-200">Phase 11: System Audit Ledger</div>} />
