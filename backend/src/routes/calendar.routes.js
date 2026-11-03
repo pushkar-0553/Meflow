@@ -1,6 +1,6 @@
 import express from 'express';
 import { calendarController } from '../controllers/calendar.controller.js';
-import { requireAuth } from '../middleware/session.js';
+import { requireAuth } from '../middleware/auth.middleware.js';
 import { requirePermission } from '../middleware/rbac.middleware.js';
 
 const router = express.Router();
@@ -28,3 +28,4 @@ router.patch(
 );
 
 export default router;
+

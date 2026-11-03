@@ -1,6 +1,6 @@
 import express from 'express';
 import { auditController } from '../controllers/audit.controller.js';
-import { requireAuth } from '../middleware/session.js';
+import { requireAuth } from '../middleware/auth.middleware.js';
 import { requirePermission } from '../middleware/rbac.middleware.js';
 
 const router = express.Router();
@@ -20,3 +20,4 @@ router.get(
 );
 
 export default router;
+

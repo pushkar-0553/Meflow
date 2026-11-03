@@ -44,3 +44,6 @@ export const sessionMiddleware = session({
   },
 });
 
+// Re-export authentication guards for convenience and backwards compatibility
+export { requireAuth, requireAdmin } from './auth.middleware.js';
+

@@ -1,6 +1,6 @@
 import express from 'express';
 import { notificationController } from '../controllers/notification.controller.js';
-import { requireAuth } from '../middleware/session.js';
+import { requireAuth } from '../middleware/auth.middleware.js';
 
 const router = express.Router();
 
@@ -12,3 +12,4 @@ router.post('/read-all', notificationController.markAllAsRead);
 router.delete('/:id', notificationController.deleteNotification);
 
 export default router;
+

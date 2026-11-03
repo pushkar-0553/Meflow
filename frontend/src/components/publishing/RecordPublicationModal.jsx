@@ -173,3 +173,4 @@ export const RecordPublicationModal = ({ isOpen, onClose, onSuccess }) => {
     </div>
   );
 };
+

@@ -1,6 +1,6 @@
 import express from 'express';
 import { workflowController } from '../controllers/workflow.controller.js';
-import { requireAuth } from '../middleware/session.js';
+import { requireAuth } from '../middleware/auth.middleware.js';
 import { requirePermission } from '../middleware/rbac.middleware.js';
 
 const router = express.Router();
