@@ -551,3 +551,4 @@ export const authController = {
     }
   },
 };
+

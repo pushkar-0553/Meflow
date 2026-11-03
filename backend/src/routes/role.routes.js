@@ -1,25 +1,17 @@
 import { Router } from 'express';
-import { query } from '../config/db.js';
+import { roleController } from '../controllers/role.controller.js';
 import { requireAuth } from '../middleware/auth.middleware.js';
-import { successResponse } from '../utils/apiResponse.js';
+import { requirePermission } from '../middleware/rbac.middleware.js';
 
 const router = Router();
 
-router.get('/', requireAuth, async (req, res, next) => {
-  try {
-    const roles = await query(
-      `SELECT id, name, code, description, is_system_role, is_system_admin, is_active
-       FROM roles
-       WHERE is_active = TRUE
-       ORDER BY id ASC`
-    );
-    return successResponse(res, {
-      message: 'Active organizational roles',
-      data: roles,
-    });
-  } catch (error) {
-    next(error);
-  }
-});
+router.use(requireAuth);
+
+router.get('/', requirePermission('roles.view'), roleController.getAllRoles);
+router.post('/', requirePermission('roles.create'), roleController.createRole);
+router.get('/:id', requirePermission('roles.view'), roleController.getRoleById);
+router.put('/:id', requirePermission('roles.edit'), roleController.updateRole);
+router.post('/:id/duplicate', requirePermission('roles.create'), roleController.duplicateRole);
+router.delete('/:id', requirePermission('roles.delete'), roleController.deleteRole);
 
 export default router;

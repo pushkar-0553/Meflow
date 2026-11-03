@@ -277,3 +277,4 @@ export const InviteEmployeeModal = ({ isOpen, onClose, onUserInvited }) => {
     </div>
   );
 };
+
