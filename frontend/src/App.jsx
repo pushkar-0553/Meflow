@@ -20,6 +20,7 @@ import { PendingReviewsPage } from './pages/PendingReviewsPage';
 import { MasterCalendarPage } from './pages/MasterCalendarPage';
 import { PersonalCalendarPage } from './pages/PersonalCalendarPage';
 import { WorkloadHubPage } from './pages/WorkloadHubPage';
+import { PublishingArchivePage } from './pages/PublishingArchivePage';
 import { AuditLedgerPage } from './pages/AuditLedgerPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 
@@ -56,7 +57,7 @@ export function App() {
               <Route path="roles" element={<RolesPage />} />
               <Route path="workload" element={<WorkloadHubPage />} />
               <Route path="calendar" element={<MasterCalendarPage />} />
-              <Route path="publishing" element={<div className="p-8 text-center text-slate-500 font-bold bg-white rounded-3xl border border-slate-200">Phase 6: Published Social Media Content Archive</div>} />
+              <Route path="publishing" element={<PublishingArchivePage />} />
               <Route path="audit" element={<AuditLedgerPage />} />
             </Route>
 
