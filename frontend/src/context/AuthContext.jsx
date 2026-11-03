@@ -65,17 +65,32 @@ export const AuthProvider = ({ children }) => {
 
   const hasPermission = useCallback((permKey) => {
     if (!user) return false;
-    if (user.role?.is_system_admin || user.role?.code === 'ADMIN') return true;
+    if (
+      user.is_system_admin ||
+      user.role_code === 'ADMIN' ||
+      user.role?.is_system_admin ||
+      user.role?.code === 'ADMIN'
+    ) return true;
     return permissions.has(permKey);
   }, [user, permissions]);
 
   const hasAnyPermission = useCallback((permKeys = []) => {
     if (!user) return false;
-    if (user.role?.is_system_admin || user.role?.code === 'ADMIN') return true;
+    if (
+      user.is_system_admin ||
+      user.role_code === 'ADMIN' ||
+      user.role?.is_system_admin ||
+      user.role?.code === 'ADMIN'
+    ) return true;
     return permKeys.some((k) => permissions.has(k));
   }, [user, permissions]);
 
-  const isAdmin = Boolean(user?.role?.is_system_admin || user?.role?.code === 'ADMIN');
+  const isAdmin = Boolean(
+    user?.is_system_admin ||
+    user?.role_code === 'ADMIN' ||
+    user?.role?.is_system_admin ||
+    user?.role?.code === 'ADMIN'
+  );
 
   return (
     <AuthContext.Provider

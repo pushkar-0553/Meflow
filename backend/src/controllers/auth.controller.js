@@ -106,6 +106,12 @@ export const authController = {
         role_name: user.role_name,
         is_system_admin: Boolean(user.is_system_admin),
         profile_image_url: user.profile_image_url,
+        role: {
+          id: user.role_id,
+          code: user.role_code,
+          name: user.role_name,
+          is_system_admin: Boolean(user.is_system_admin),
+        },
       };
 
       // Record activity
@@ -173,6 +179,12 @@ export const authController = {
         role_name: user.role_name,
         is_system_admin: Boolean(user.is_system_admin),
         profile_image_url: user.profile_image_url,
+        role: {
+          id: user.role_id,
+          code: user.role_code,
+          name: user.role_name,
+          is_system_admin: Boolean(user.is_system_admin),
+        },
       };
 
       return successResponse(res, {

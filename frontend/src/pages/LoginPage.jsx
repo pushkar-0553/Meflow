@@ -25,7 +25,13 @@ export const LoginPage = () => {
     setSubmitting(true);
     try {
       const loggedUser = await login(email, password);
-      if (loggedUser.role?.is_system_admin || loggedUser.role?.code === 'ADMIN') {
+      const isUserAdmin = Boolean(
+        loggedUser.is_system_admin ||
+        loggedUser.role_code === 'ADMIN' ||
+        loggedUser.role?.is_system_admin ||
+        loggedUser.role?.code === 'ADMIN'
+      );
+      if (isUserAdmin) {
         navigate('/admin/dashboard', { replace: true });
       } else {
         navigate('/dashboard', { replace: true });
