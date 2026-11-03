@@ -21,6 +21,7 @@ import proofRoutes from './routes/proof.routes.js';
 import notificationRoutes from './routes/notification.routes.js';
 import calendarRoutes from './routes/calendar.routes.js';
 import workloadRoutes from './routes/workload.routes.js';
+import auditRoutes from './routes/audit.routes.js';
 
 const app = express();
 
@@ -76,6 +77,7 @@ app.use('/api/proofs', proofRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/calendar', calendarRoutes);
 app.use('/api/workload', workloadRoutes);
+app.use('/api/audit', auditRoutes);
 
 // Catch-all 404 Route
 app.use('/api/*', (req, res) => {
