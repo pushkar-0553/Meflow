@@ -10,6 +10,8 @@ import { EmployeeLayout } from './components/layout/EmployeeLayout';
 import { AdminDashboardPage } from './pages/AdminDashboardPage';
 import { EmployeeDashboardPage } from './pages/EmployeeDashboardPage';
 import { RolesPage } from './pages/RolesPage';
+import { UsersPage } from './pages/UsersPage';
+import { UserDetailPage } from './pages/UserDetailPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 
 // Smart Home Redirector based on User Role
@@ -38,7 +40,8 @@ export function App() {
               <Route index element={<Navigate to="/admin/dashboard" replace />} />
               <Route path="dashboard" element={<AdminDashboardPage />} />
               <Route path="tasks" element={<div className="p-8 text-center text-slate-500 font-bold bg-white rounded-3xl border border-slate-200">Phase 5: Tasks & Production Pipeline Modules</div>} />
-              <Route path="users" element={<div className="p-8 text-center text-slate-500 font-bold bg-white rounded-3xl border border-slate-200">Phase 4: Employee Management & Permission Matrix</div>} />
+              <Route path="users" element={<UsersPage />} />
+              <Route path="users/:id" element={<UserDetailPage />} />
               <Route path="roles" element={<RolesPage />} />
               <Route path="workload" element={<div className="p-8 text-center text-slate-500 font-bold bg-white rounded-3xl border border-slate-200">Phase 10: Team Capacity & Workload Hub</div>} />
               <Route path="calendar" element={<div className="p-8 text-center text-slate-500 font-bold bg-white rounded-3xl border border-slate-200">Phase 9: Production Calendar</div>} />

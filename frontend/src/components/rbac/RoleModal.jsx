@@ -218,3 +218,4 @@ export const RoleModal = ({ isOpen, role = null, allPermissions = [], onClose, o
     </div>
   );
 };
+

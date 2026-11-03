@@ -13,6 +13,7 @@ import healthRoutes from './routes/health.routes.js';
 import authRoutes from './routes/auth.routes.js';
 import roleRoutes from './routes/role.routes.js';
 import permissionRoutes from './routes/permission.routes.js';
+import userRoutes from './routes/user.routes.js';
 
 const app = express();
 
@@ -60,6 +61,7 @@ app.use('/api/health', healthRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/roles', roleRoutes);
 app.use('/api/permissions', permissionRoutes);
+app.use('/api/users', userRoutes);
 
 // Catch-all 404 Route
 app.use('/api/*', (req, res) => {

@@ -12,3 +12,4 @@ router.get('/users/:userId', requirePermission('permissions.view'), permissionCo
 router.put('/users/:userId', requirePermission('permissions.override'), permissionController.updateUserPermissions);
 
 export default router;
+

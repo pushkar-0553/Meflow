@@ -54,3 +54,4 @@ export function requirePermission(requiredPermissions, mode = 'OR') {
     }
   };
 }
+
