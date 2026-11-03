@@ -12,6 +12,11 @@ import { EmployeeDashboardPage } from './pages/EmployeeDashboardPage';
 import { RolesPage } from './pages/RolesPage';
 import { UsersPage } from './pages/UsersPage';
 import { UserDetailPage } from './pages/UserDetailPage';
+import { TasksPage } from './pages/TasksPage';
+import { TaskDetailPage } from './pages/TaskDetailPage';
+import { AvailableWorkPage } from './pages/AvailableWorkPage';
+import { MyBucketPage } from './pages/MyBucketPage';
+import { PendingReviewsPage } from './pages/PendingReviewsPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 
 // Smart Home Redirector based on User Role
@@ -39,7 +44,9 @@ export function App() {
             <Route path="/admin" element={<AdminLayout />}>
               <Route index element={<Navigate to="/admin/dashboard" replace />} />
               <Route path="dashboard" element={<AdminDashboardPage />} />
-              <Route path="tasks" element={<div className="p-8 text-center text-slate-500 font-bold bg-white rounded-3xl border border-slate-200">Phase 5: Tasks & Production Pipeline Modules</div>} />
+              <Route path="reviews" element={<PendingReviewsPage />} />
+              <Route path="tasks" element={<TasksPage />} />
+              <Route path="tasks/:id" element={<TaskDetailPage />} />
               <Route path="users" element={<UsersPage />} />
               <Route path="users/:id" element={<UserDetailPage />} />
               <Route path="roles" element={<RolesPage />} />
@@ -52,8 +59,8 @@ export function App() {
             {/* Employee Workspace Routes */}
             <Route element={<EmployeeLayout />}>
               <Route path="/dashboard" element={<EmployeeDashboardPage />} />
-              <Route path="/available-work" element={<div className="p-8 text-center text-slate-500 font-bold bg-white rounded-3xl border border-slate-200">Phase 5: Available Work Self-Claim Feed</div>} />
-              <Route path="/my-bucket" element={<div className="p-8 text-center text-slate-500 font-bold bg-white rounded-3xl border border-slate-200">Phase 5: My Bucket & Execution Pipeline</div>} />
+              <Route path="/available-work" element={<AvailableWorkPage />} />
+              <Route path="/my-bucket" element={<MyBucketPage />} />
               <Route path="/my-calendar" element={<div className="p-8 text-center text-slate-500 font-bold bg-white rounded-3xl border border-slate-200">Phase 9: Personal Work Schedule</div>} />
             </Route>
 

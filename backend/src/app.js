@@ -14,6 +14,9 @@ import authRoutes from './routes/auth.routes.js';
 import roleRoutes from './routes/role.routes.js';
 import permissionRoutes from './routes/permission.routes.js';
 import userRoutes from './routes/user.routes.js';
+import taskRoutes from './routes/task.routes.js';
+import workRoutes from './routes/work.routes.js';
+import workflowRoutes from './routes/workflow.routes.js';
 
 const app = express();
 
@@ -62,6 +65,9 @@ app.use('/api/auth', authRoutes);
 app.use('/api/roles', roleRoutes);
 app.use('/api/permissions', permissionRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/tasks', taskRoutes);
+app.use('/api/work', workRoutes);
+app.use('/api/workflow', workflowRoutes);
 
 // Catch-all 404 Route
 app.use('/api/*', (req, res) => {

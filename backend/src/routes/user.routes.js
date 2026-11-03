@@ -15,3 +15,4 @@ router.post('/:id/resend-invite', requirePermission('users.create'), userControl
 router.delete('/:id', requirePermission('users.delete'), userController.deleteUser);
 
 export default router;
+

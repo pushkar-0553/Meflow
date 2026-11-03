@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { StatCard } from '../components/common/StatCard';
 import { InviteEmployeeModal } from '../components/users/InviteEmployeeModal';
@@ -19,6 +20,7 @@ import { LoadingSpinner } from '../components/common/LoadingSpinner';
 
 export const AdminDashboardPage = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [stats, setStats] = useState({
     scheduled: 0,
     inProgress: 0,
@@ -126,13 +128,15 @@ export const AdminDashboardPage = () => {
           icon={Scissors}
           variant="blue"
         />
-        <StatCard
-          title="Review"
-          value={stats.underReview}
-          subtitle="Manager Sign-off"
-          icon={ShieldCheck}
-          variant="purple"
-        />
+        <div onClick={() => navigate('/admin/reviews')} className="cursor-pointer transition-transform hover:scale-102">
+          <StatCard
+            title="Review"
+            value={stats.underReview}
+            subtitle="Manager Sign-off"
+            icon={ShieldCheck}
+            variant="purple"
+          />
+        </div>
         <StatCard
           title="Completed"
           value={stats.completed}

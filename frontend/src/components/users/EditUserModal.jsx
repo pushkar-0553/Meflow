@@ -162,3 +162,4 @@ export const EditUserModal = ({ isOpen, user, roles = [], onClose, onUserUpdated
     </div>
   );
 };
+

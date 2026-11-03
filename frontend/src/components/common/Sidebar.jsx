@@ -21,6 +21,7 @@ export const Sidebar = () => {
 
   const adminNav = [
     { name: 'Dashboard', to: '/admin/dashboard', icon: LayoutDashboard },
+    { name: 'Review Sign-Off', to: '/admin/reviews', icon: ShieldCheck, perm: 'approval.review' },
     { name: 'Tasks & Pipeline', to: '/admin/tasks', icon: Layers, perm: 'tasks.view' },
     { name: 'Employees', to: '/admin/users', icon: Users, perm: 'users.view' },
     { name: 'Roles & Permissions', to: '/admin/roles', icon: ShieldCheck, perm: 'roles.view' },
