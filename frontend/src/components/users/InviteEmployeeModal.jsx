@@ -47,23 +47,28 @@ export const InviteEmployeeModal = ({ isOpen, onClose, onUserInvited }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!name || !email || !roleId) {
-      toast.error('Please fill in all required fields.');
+    const parsedRoleId = parseInt(roleId, 10);
+    if (!name.trim() || !email.trim() || isNaN(parsedRoleId) || parsedRoleId <= 0) {
+      toast.error('Please enter a name, valid email, and select a role.');
       return;
     }
 
     setSubmitting(true);
     try {
       const res = await apiClient.post('/auth/invite', {
-        name,
-        email,
-        role_id: parseInt(roleId, 10),
+        name: name.trim(),
+        email: email.trim().toLowerCase(),
+        role_id: parsedRoleId,
         department,
-        phone: phone || null,
+        phone: phone ? phone.trim() : null,
       });
 
       if (res.success) {
-        toast.success(`Invitation sent to ${email} via Resend!`);
+        if (res.data?.emailDispatched) {
+          toast.success(`Invitation sent to ${email} via Resend!`);
+        } else {
+          toast.success(`Employee created! Copy the onboarding link below.`);
+        }
         setInviteResult(res.data);
         if (onUserInvited) onUserInvited(res.data.user);
       }
@@ -114,10 +119,22 @@ export const InviteEmployeeModal = ({ isOpen, onClose, onUserInvited }) => {
                 <Send className="w-7 h-7" />
               </div>
               <div>
-                <h3 className="text-lg font-bold text-slate-900">Invitation Dispatched!</h3>
+                <h3 className="text-lg font-bold text-slate-900">
+                  {inviteResult.emailDispatched ? 'Invitation Dispatched!' : 'Employee Account Created!'}
+                </h3>
                 <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
-                  An email was sent to <strong className="text-slate-800">{inviteResult.user.email}</strong> via{' '}
-                  <span className="font-semibold text-blue-600 uppercase">Resend</span>.
+                  {inviteResult.emailDispatched ? (
+                    <>
+                      An invitation email has been sent to{' '}
+                      <strong className="text-slate-800">{inviteResult.user.email}</strong> via{' '}
+                      <span className="font-semibold text-blue-600 uppercase">Resend</span>.
+                    </>
+                  ) : (
+                    <>
+                      Single-use onboarding token generated for{' '}
+                      <strong className="text-slate-800">{inviteResult.user.email}</strong>. Copy the link below to share with the employee.
+                    </>
+                  )}
                 </p>
               </div>
 

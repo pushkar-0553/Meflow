@@ -30,7 +30,7 @@ export const roleController = {
          FROM roles r
          LEFT JOIN users u ON r.id = u.role_id AND u.status = 'ACTIVE'
          LEFT JOIN role_permissions rp ON r.id = rp.role_id
-         GROUP BY r.id
+         GROUP BY r.id, r.name, r.code, r.description, r.is_system_role, r.is_system_admin, r.is_active, r.created_at, r.updated_at
          ORDER BY r.is_system_admin DESC, r.id ASC`
       );
 

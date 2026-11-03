@@ -72,7 +72,7 @@ export const userController = {
          JOIN roles r ON u.role_id = r.id
          LEFT JOIN task_stage_assignments tsa ON u.id = tsa.user_id AND tsa.status IN ('ACCEPTED', 'IN_PROGRESS')
          ${whereClause}
-         GROUP BY u.id
+         GROUP BY u.id, r.id, r.name, r.code, r.is_system_admin
          ORDER BY u.created_at DESC
          LIMIT ? OFFSET ?`,
         [...params, limitNum, offset]
@@ -113,7 +113,7 @@ export const userController = {
          JOIN roles r ON u.role_id = r.id
          LEFT JOIN task_stage_assignments tsa ON u.id = tsa.user_id AND tsa.status IN ('ACCEPTED', 'IN_PROGRESS')
          WHERE u.id = ?
-         GROUP BY u.id`,
+         GROUP BY u.id, r.id, r.name, r.code, r.is_system_admin, r.description`,
         [userId]
       );
 
