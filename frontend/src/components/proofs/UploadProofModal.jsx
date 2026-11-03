@@ -276,3 +276,4 @@ export const UploadProofModal = ({ stage, isOpen, onClose, onSuccess }) => {
     </div>
   );
 };
+

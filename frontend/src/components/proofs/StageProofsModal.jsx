@@ -212,3 +212,4 @@ export const StageProofsModal = ({ stage, isOpen, onClose, onUploadNew }) => {
     </div>
   );
 };
+

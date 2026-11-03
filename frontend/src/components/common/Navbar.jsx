@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import apiClient from '../../api/client';
+import { NotificationDropdown } from '../notifications/NotificationDropdown';
 import { LogOut, User, Bell, Activity, Sparkles } from 'lucide-react';
 
 export const Navbar = () => {
@@ -77,6 +78,8 @@ export const Navbar = () => {
       <div className="flex items-center gap-3">
         {user ? (
           <div className="flex items-center gap-3">
+            <NotificationDropdown />
+
             <div className="hidden md:flex flex-col text-right">
               <span className="text-sm font-bold text-slate-900">{user.name}</span>
               <span className="text-xs font-medium text-slate-500">
