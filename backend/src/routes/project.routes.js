@@ -16,3 +16,4 @@ router.post('/drafts/:id/submit', requirePermission('drafts.submit'), projectCon
 router.get('/:id/timeline', requirePermission('drafts.view'), projectController.getProjectTimeline);
 
 export default router;
+

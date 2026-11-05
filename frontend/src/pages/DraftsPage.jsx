@@ -395,3 +395,4 @@ export const DraftsPage = () => {
     </div>
   );
 };
+

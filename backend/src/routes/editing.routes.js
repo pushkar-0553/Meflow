@@ -15,3 +15,4 @@ router.post('/:projectId/versions', requirePermission(['editing.submit', 'produc
 router.post('/versions/:versionId/review', requirePermission(['review.approve', 'production.manage']), editingController.reviewVersionCut);
 
 export default router;
+

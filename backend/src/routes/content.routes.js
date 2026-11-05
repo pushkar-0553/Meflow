@@ -15,3 +15,4 @@ router.post('/:projectId/submit', requirePermission('content.submit'), contentCo
 router.post('/:projectId/review', requirePermission('content.approve'), contentController.reviewScript);
 
 export default router;
+

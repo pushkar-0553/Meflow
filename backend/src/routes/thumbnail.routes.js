@@ -12,3 +12,4 @@ router.post('/:projectId', requirePermission(['thumbnail.manage', 'drafts.view']
 router.post('/:thumbnailId/review', requirePermission(['thumbnail.manage', 'review.approve']), thumbnailController.reviewThumbnail);
 
 export default router;
+

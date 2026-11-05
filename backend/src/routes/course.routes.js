@@ -11,3 +11,4 @@ router.get('/', courseController.getAllCourses);
 router.post('/', requirePermission('roles.manage'), courseController.createCourse);
 
 export default router;
+

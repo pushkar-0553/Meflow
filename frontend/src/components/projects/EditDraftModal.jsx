@@ -287,3 +287,4 @@ export const EditDraftModal = ({ isOpen, draft, onClose, onSuccess }) => {
     </div>
   );
 };
+

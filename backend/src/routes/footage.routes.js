@@ -14,3 +14,4 @@ router.post('/:projectId/copied', requirePermission(['footage.receive', 'cinemat
 router.post('/:projectId/ready', requirePermission(['footage.receive', 'cinematography.manage']), footageController.markReadyForEditing);
 
 export default router;
+
