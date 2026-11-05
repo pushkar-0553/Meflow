@@ -8,7 +8,9 @@
     "dev:frontend": "cd frontend && npm run dev",
     "migrate": "cd backend && npm run migrate",
     "seed": "cd backend && npm run seed",
-    "build": "cd frontend && npm run build"
+    "install:all": "npm --prefix backend install && npm --prefix frontend install",
+    "build": "npm --prefix backend install && npm --prefix frontend install && npm --prefix frontend run build",
+    "start": "node backend/src/server.js"
   },
   "keywords": [
     "digital-marketing",

@@ -3,6 +3,12 @@ import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import rateLimit from 'express-rate-limit';
+import path from 'path';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 import { env } from './config/env.js';
 import { sessionMiddleware } from './middleware/session.js';
@@ -32,6 +38,9 @@ import editingRoutes from './routes/editing.routes.js';
 import thumbnailRoutes from './routes/thumbnail.routes.js';
 
 const app = express();
+
+// Trust reverse proxy (Render, Heroku, Nginx) for secure cookie forwarding
+app.set('trust proxy', 1);
 
 // Security Headers
 app.use(helmet({
@@ -95,7 +104,7 @@ app.use('/api/footage', footageRoutes);
 app.use('/api/editing', editingRoutes);
 app.use('/api/thumbnails', thumbnailRoutes);
 
-// Catch-all 404 Route
+// Catch-all 404 Route for API requests
 app.use('/api/*', (req, res) => {
   return errorResponse(res, {
     statusCode: 404,
@@ -103,6 +112,15 @@ app.use('/api/*', (req, res) => {
     message: `API endpoint '${req.originalUrl}' not found.`,
   });
 });
+
+// Serve frontend static build if dist exists (Single-Service Deployment support)
+const frontendDistPath = path.resolve(__dirname, '../../frontend/dist');
+if (fs.existsSync(frontendDistPath)) {
+  app.use(express.static(frontendDistPath));
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(frontendDistPath, 'index.html'));
+  });
+}
 
 // Centralized Error Handler
 app.use(errorHandler);
