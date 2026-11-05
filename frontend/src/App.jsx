@@ -22,6 +22,8 @@ import { PersonalCalendarPage } from './pages/PersonalCalendarPage';
 import { WorkloadHubPage } from './pages/WorkloadHubPage';
 import { PublishingArchivePage } from './pages/PublishingArchivePage';
 import { AuditLedgerPage } from './pages/AuditLedgerPage';
+import { DraftsPage } from './pages/DraftsPage';
+import { ProjectDetailPage } from './pages/ProjectDetailPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 
 // Smart Home Redirector based on User Role
@@ -49,6 +51,8 @@ export function App() {
             <Route path="/admin" element={<AdminLayout />}>
               <Route index element={<Navigate to="/admin/dashboard" replace />} />
               <Route path="dashboard" element={<AdminDashboardPage />} />
+              <Route path="drafts" element={<DraftsPage />} />
+              <Route path="projects/:id" element={<ProjectDetailPage />} />
               <Route path="reviews" element={<PendingReviewsPage />} />
               <Route path="tasks" element={<TasksPage />} />
               <Route path="tasks/:id" element={<TaskDetailPage />} />
@@ -64,6 +68,8 @@ export function App() {
             {/* Employee Workspace Routes */}
             <Route element={<EmployeeLayout />}>
               <Route path="/dashboard" element={<EmployeeDashboardPage />} />
+              <Route path="/drafts" element={<DraftsPage />} />
+              <Route path="/projects/:id" element={<ProjectDetailPage />} />
               <Route path="/available-work" element={<AvailableWorkPage />} />
               <Route path="/my-bucket" element={<MyBucketPage />} />
               <Route path="/my-calendar" element={<PersonalCalendarPage />} />

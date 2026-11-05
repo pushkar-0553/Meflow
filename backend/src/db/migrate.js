@@ -238,6 +238,273 @@ const MIGRATIONS = [
     CONSTRAINT fk_audit_actor FOREIGN KEY (actor_id) REFERENCES users(id) ON DELETE SET NULL,
     INDEX idx_audit_entity (entity, entity_id),
     INDEX idx_audit_created (created_at)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;`,
+
+  // 17. Courses (Academic programs & campaigns)
+  `CREATE TABLE IF NOT EXISTS courses (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    code VARCHAR(50) NOT NULL UNIQUE,
+    name VARCHAR(150) NOT NULL,
+    description TEXT NULL,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_courses_active (is_active)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;`,
+
+  // 18. Video Projects (The Central Master Entity for All Lifecycle Stages)
+  `CREATE TABLE IF NOT EXISTS video_projects (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    project_code VARCHAR(50) NOT NULL UNIQUE,
+    title VARCHAR(255) NOT NULL,
+    course_id INT UNSIGNED NOT NULL,
+    category ENUM(
+      'PROJECT_EXPLANATION', 'COURSE_PROMO', 'REEL_SHORT',
+      'STUDENT_SUCCESS_STORY', 'WEBINAR_TEASER', 'EVENT_COVERAGE',
+      'TUTORIAL_CONCEPT', 'FACULTY_INSIGHT'
+    ) NOT NULL DEFAULT 'PROJECT_EXPLANATION',
+    description TEXT NULL,
+    priority ENUM('LOW', 'MEDIUM', 'HIGH', 'URGENT') NOT NULL DEFAULT 'MEDIUM',
+    
+    current_stage ENUM(
+      'DRAFT_PLANNING', 'CONTENT_WRITING', 'CINEMATOGRAPHY',
+      'FOOTAGE_HANDOVER', 'VIDEO_EDITING', 'REVIEW_APPROVAL',
+      'THUMBNAIL_PREP', 'PUBLISHING', 'PUBLISHED', 'ARCHIVED'
+    ) NOT NULL DEFAULT 'DRAFT_PLANNING',
+    overall_status ENUM('DRAFT', 'ACTIVE', 'UNDER_REVIEW', 'CHANGES_REQUESTED', 'APPROVED', 'COMPLETED', 'CANCELLED') NOT NULL DEFAULT 'DRAFT',
+
+    proposed_shoot_date DATE NULL,
+    proposed_shoot_time TIME NULL,
+    location_type ENUM('STUDIO', 'EXTERNAL') NOT NULL DEFAULT 'STUDIO',
+    location_details VARCHAR(255) NULL DEFAULT 'VCube Studio Main Floor',
+    tentative_anchor_id INT UNSIGNED NULL,
+
+    created_by INT UNSIGNED NOT NULL,
+    is_submitted_for_content BOOLEAN NOT NULL DEFAULT FALSE,
+    submitted_at TIMESTAMP NULL,
+    completed_at TIMESTAMP NULL,
+
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_vp_course FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE RESTRICT,
+    CONSTRAINT fk_vp_creator FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE RESTRICT,
+    CONSTRAINT fk_vp_anchor FOREIGN KEY (tentative_anchor_id) REFERENCES users(id) ON DELETE SET NULL,
+    INDEX idx_vp_stage (current_stage),
+    INDEX idx_vp_status (overall_status),
+    INDEX idx_vp_shoot (proposed_shoot_date),
+    INDEX idx_vp_creator (created_by)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;`,
+
+  // 19. Content Writing & Scripting Table
+  `CREATE TABLE IF NOT EXISTS content_scripts (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    video_project_id INT UNSIGNED NOT NULL UNIQUE,
+    writer_id INT UNSIGNED NULL,
+    status ENUM(
+      'NOT_STARTED', 'AVAILABLE', 'ACCEPTED',
+      'IN_PROGRESS', 'SCRIPT_READY', 'SUBMITTED',
+      'APPROVED', 'CHANGES_REQUESTED'
+    ) NOT NULL DEFAULT 'AVAILABLE',
+    google_docs_url VARCHAR(1000) NULL,
+    script_version INT UNSIGNED NOT NULL DEFAULT 1,
+    content_notes TEXT NULL,
+    reviewer_feedback TEXT NULL,
+    accepted_at TIMESTAMP NULL,
+    started_at TIMESTAMP NULL,
+    submitted_at TIMESTAMP NULL,
+    approved_at TIMESTAMP NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_cs_project FOREIGN KEY (video_project_id) REFERENCES video_projects(id) ON DELETE CASCADE,
+    CONSTRAINT fk_cs_writer FOREIGN KEY (writer_id) REFERENCES users(id) ON DELETE SET NULL,
+    INDEX idx_cs_status (status)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;`,
+
+  // 20. Cinematography Shoot Workspace Table
+  `CREATE TABLE IF NOT EXISTS cinematography_shoots (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    video_project_id INT UNSIGNED NOT NULL UNIQUE,
+    lead_cinematographer_id INT UNSIGNED NULL,
+    anchor_id INT UNSIGNED NULL,
+    status ENUM('AVAILABLE', 'ACCEPTED', 'IN_PROGRESS', 'SHOOT_COMPLETED', 'RELEASED') NOT NULL DEFAULT 'AVAILABLE',
+    version INT UNSIGNED NOT NULL DEFAULT 1,
+    actual_shoot_date DATE NULL,
+    actual_start_time TIME NULL,
+    actual_end_time TIME NULL,
+    studio_details VARCHAR(255) NULL,
+    camera_gear_notes VARCHAR(500) NULL,
+    shoot_notes TEXT NULL,
+    accepted_at TIMESTAMP NULL,
+    completed_at TIMESTAMP NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_cshoots_project FOREIGN KEY (video_project_id) REFERENCES video_projects(id) ON DELETE CASCADE,
+    CONSTRAINT fk_cshoots_lead FOREIGN KEY (lead_cinematographer_id) REFERENCES users(id) ON DELETE SET NULL,
+    CONSTRAINT fk_cshoots_anchor FOREIGN KEY (anchor_id) REFERENCES users(id) ON DELETE SET NULL,
+    INDEX idx_cshoots_status (status)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;`,
+
+  // 21. Cinematography Team Members (Multi-Worker Mapping)
+  `CREATE TABLE IF NOT EXISTS cinematography_team_members (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    shoot_id INT UNSIGNED NOT NULL,
+    user_id INT UNSIGNED NOT NULL,
+    team_role ENUM('LEAD_CAMERAMAN', 'SECOND_CAMERA', 'ANCHOR', 'LIGHTING_ASSISTANT', 'AUDIO_TECH') NOT NULL,
+    assigned_by INT UNSIGNED NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_ctm_shoot FOREIGN KEY (shoot_id) REFERENCES cinematography_shoots(id) ON DELETE CASCADE,
+    CONSTRAINT fk_ctm_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    UNIQUE KEY uk_shoot_user (shoot_id, user_id)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;`,
+
+  // 22. Video Scenes Table
+  `CREATE TABLE IF NOT EXISTS video_scenes (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    shoot_id INT UNSIGNED NOT NULL,
+    scene_number SMALLINT UNSIGNED NOT NULL,
+    title VARCHAR(150) NOT NULL,
+    description TEXT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_vs_shoot FOREIGN KEY (shoot_id) REFERENCES cinematography_shoots(id) ON DELETE CASCADE,
+    UNIQUE KEY uk_shoot_scene (shoot_id, scene_number)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;`,
+
+  // 23. Video Shots Log Table (Chronological Scene & Shot Logging)
+  `CREATE TABLE IF NOT EXISTS video_shots (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    scene_id INT UNSIGNED NOT NULL,
+    shot_number SMALLINT UNSIGNED NOT NULL,
+    clip_file_name VARCHAR(100) NOT NULL,
+    dialogue_reference TEXT NULL,
+    take_number SMALLINT UNSIGNED NOT NULL DEFAULT 1,
+    status ENUM('RECORDED', 'CONFIRMED', 'REJECTED', 'UNUSABLE', 'RETAKE_REQUIRED') NOT NULL DEFAULT 'RECORDED',
+    notes VARCHAR(500) NULL,
+    logged_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_vshots_scene FOREIGN KEY (scene_id) REFERENCES video_scenes(id) ON DELETE CASCADE,
+    INDEX idx_scene_shots (scene_id, shot_number),
+    INDEX idx_shot_status (status)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;`,
+
+  // 24. Raw Footage Handover Table
+  `CREATE TABLE IF NOT EXISTS footage_handovers (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    video_project_id INT UNSIGNED NOT NULL,
+    handed_over_by INT UNSIGNED NOT NULL,
+    received_by INT UNSIGNED NULL,
+    status ENUM(
+      'SHOOT_COMPLETED', 'AWAITING_HANDOVER', 'HANDED_OVER',
+      'RECEIVED_BY_EDITOR', 'FOOTAGE_COPIED', 'READY_FOR_EDITING'
+    ) NOT NULL DEFAULT 'AWAITING_HANDOVER',
+    storage_media_identifier VARCHAR(100) NOT NULL,
+    footage_folder_name VARCHAR(200) NOT NULL,
+    footage_storage_url VARCHAR(1000) NULL,
+    notes TEXT NULL,
+    handed_over_at TIMESTAMP NULL,
+    received_at TIMESTAMP NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_fh_project FOREIGN KEY (video_project_id) REFERENCES video_projects(id) ON DELETE CASCADE,
+    CONSTRAINT fk_fh_giver FOREIGN KEY (handed_over_by) REFERENCES users(id) ON DELETE RESTRICT,
+    CONSTRAINT fk_fh_receiver FOREIGN KEY (received_by) REFERENCES users(id) ON DELETE SET NULL,
+    INDEX idx_fh_status (status)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;`,
+
+  // 25. Video Editing Workspace & Assignments
+  `CREATE TABLE IF NOT EXISTS editing_assignments (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    video_project_id INT UNSIGNED NOT NULL UNIQUE,
+    editor_id INT UNSIGNED NULL,
+    status ENUM(
+      'AVAILABLE', 'ACCEPTED', 'EDITING_STARTED',
+      'EDITING_IN_PROGRESS', 'FIRST_CUT_READY', 'UNDER_REVIEW',
+      'CHANGES_REQUESTED', 'FINAL_CUT_READY', 'COMPLETED'
+    ) NOT NULL DEFAULT 'AVAILABLE',
+    version INT UNSIGNED NOT NULL DEFAULT 1,
+    accepted_at TIMESTAMP NULL,
+    editing_started_at TIMESTAMP NULL,
+    completed_at TIMESTAMP NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_ea_project FOREIGN KEY (video_project_id) REFERENCES video_projects(id) ON DELETE CASCADE,
+    CONSTRAINT fk_ea_editor FOREIGN KEY (editor_id) REFERENCES users(id) ON DELETE SET NULL,
+    INDEX idx_ea_status (status)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;`,
+
+  // 26. Multi-Version Editing Cuts
+  `CREATE TABLE IF NOT EXISTS editing_versions (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    editing_assignment_id INT UNSIGNED NOT NULL,
+    version_number INT UNSIGNED NOT NULL DEFAULT 1,
+    cut_type ENUM('FIRST_CUT', 'ROUGH_CUT', 'REWORK_CUT', 'FINAL_CUT') NOT NULL,
+    cut_video_url VARCHAR(1000) NOT NULL,
+    duration_seconds INT UNSIGNED NULL,
+    editor_notes TEXT NULL,
+    submitted_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_ev_assignment FOREIGN KEY (editing_assignment_id) REFERENCES editing_assignments(id) ON DELETE CASCADE,
+    INDEX idx_ev_version (editing_assignment_id, version_number)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;`,
+
+  // 27. Review & Approval History
+  `CREATE TABLE IF NOT EXISTS video_reviews (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    editing_version_id INT UNSIGNED NOT NULL,
+    reviewer_id INT UNSIGNED NOT NULL,
+    decision ENUM('APPROVED', 'CHANGES_REQUESTED') NOT NULL,
+    review_comments TEXT NOT NULL,
+    rework_required_notes TEXT NULL,
+    reviewed_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_vr_version FOREIGN KEY (editing_version_id) REFERENCES editing_versions(id) ON DELETE CASCADE,
+    CONSTRAINT fk_vr_reviewer FOREIGN KEY (reviewer_id) REFERENCES users(id) ON DELETE RESTRICT
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;`,
+
+  // 28. Thumbnails Management Table
+  `CREATE TABLE IF NOT EXISTS thumbnails (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    video_project_id INT UNSIGNED NOT NULL,
+    designer_id INT UNSIGNED NULL,
+    thumbnail_url VARCHAR(1000) NOT NULL,
+    version_number SMALLINT UNSIGNED NOT NULL DEFAULT 1,
+    status ENUM('DRAFT', 'SUBMITTED', 'APPROVED', 'CHANGES_REQUESTED') NOT NULL DEFAULT 'DRAFT',
+    feedback_notes TEXT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_tn_project FOREIGN KEY (video_project_id) REFERENCES video_projects(id) ON DELETE CASCADE,
+    CONSTRAINT fk_tn_designer FOREIGN KEY (designer_id) REFERENCES users(id) ON DELETE SET NULL,
+    INDEX idx_tn_project (video_project_id)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;`,
+
+  // 29. Platform Publications (Independent Multi-Channel Distribution)
+  `CREATE TABLE IF NOT EXISTS platform_publications (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    video_project_id INT UNSIGNED NOT NULL,
+    platform ENUM('INSTAGRAM', 'FACEBOOK', 'YOUTUBE', 'LINKEDIN', 'WEBSITE', 'OTHER') NOT NULL,
+    status ENUM('PENDING', 'SCHEDULED', 'PUBLISHED', 'FAILED') NOT NULL DEFAULT 'PENDING',
+    published_by INT UNSIGNED NULL,
+    published_at TIMESTAMP NULL,
+    post_url VARCHAR(1000) NULL,
+    caption TEXT NULL,
+    hashtags VARCHAR(500) NULL,
+    thumbnail_url VARCHAR(1000) NULL,
+    proof_screenshot_url VARCHAR(1000) NULL,
+    notes TEXT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_ppub_project FOREIGN KEY (video_project_id) REFERENCES video_projects(id) ON DELETE CASCADE,
+    CONSTRAINT fk_ppub_publisher FOREIGN KEY (published_by) REFERENCES users(id) ON DELETE SET NULL,
+    UNIQUE KEY uk_project_platform (video_project_id, platform),
+    INDEX idx_ppub_platform_status (platform, status)
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;`
 ];
 

@@ -3,6 +3,7 @@ import { NavLink } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import {
   LayoutDashboard,
+  Film,
   Layers,
   Users,
   ShieldCheck,
@@ -21,6 +22,7 @@ export const Sidebar = () => {
 
   const adminNav = [
     { name: 'Dashboard', to: '/admin/dashboard', icon: LayoutDashboard },
+    { name: 'Video Drafts', to: '/admin/drafts', icon: Film, perm: 'drafts.view' },
     { name: 'Review Sign-Off', to: '/admin/reviews', icon: ShieldCheck, perm: 'approval.review' },
     { name: 'Tasks & Pipeline', to: '/admin/tasks', icon: Layers, perm: 'tasks.view' },
     { name: 'Employees', to: '/admin/users', icon: Users, perm: 'users.view' },
@@ -33,6 +35,7 @@ export const Sidebar = () => {
 
   const employeeNav = [
     { name: 'My Dashboard', to: '/dashboard', icon: LayoutDashboard },
+    { name: 'Video Drafts', to: '/drafts', icon: Film },
     { name: 'Available Work', to: '/available-work', icon: Sparkles },
     { name: 'My Bucket', to: '/my-bucket', icon: CheckSquare },
     { name: 'My Calendar', to: '/my-calendar', icon: Clock },

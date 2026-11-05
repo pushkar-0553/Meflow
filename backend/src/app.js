@@ -23,6 +23,8 @@ import calendarRoutes from './routes/calendar.routes.js';
 import workloadRoutes from './routes/workload.routes.js';
 import auditRoutes from './routes/audit.routes.js';
 import publishingRoutes from './routes/publishing.routes.js';
+import courseRoutes from './routes/course.routes.js';
+import projectRoutes from './routes/project.routes.js';
 
 const app = express();
 
@@ -80,6 +82,8 @@ app.use('/api/calendar', calendarRoutes);
 app.use('/api/workload', workloadRoutes);
 app.use('/api/audit', auditRoutes);
 app.use('/api/publishing', publishingRoutes);
+app.use('/api/courses', courseRoutes);
+app.use('/api/projects', projectRoutes);
 
 // Catch-all 404 Route
 app.use('/api/*', (req, res) => {

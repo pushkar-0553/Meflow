@@ -68,6 +68,35 @@ export const PERMISSIONS_SEED = [
   { key: 'reports.view', name: 'View Reports', category: 'Analytics & Reports', description: 'Access deep-dive productivity and duration reports' },
   { key: 'reports.export', name: 'Export Reports', category: 'Analytics & Reports', description: 'Export CSV/PDF dumps of production history' },
 
+  // Video Planning & Drafts
+  { key: 'drafts.view', name: 'View Video Drafts', category: 'Video Planning & Drafts', description: 'Browse all shared video project drafts' },
+  { key: 'drafts.create', name: 'Create Video Draft', category: 'Video Planning & Drafts', description: 'Conceive and plan a new video project draft' },
+  { key: 'drafts.edit_own', name: 'Edit Own Draft', category: 'Video Planning & Drafts', description: 'Modify details of drafts originally created by self' },
+  { key: 'drafts.edit_all', name: 'Edit Any Draft', category: 'Video Planning & Drafts', description: 'Managerial override to edit any video draft' },
+  { key: 'drafts.submit', name: 'Submit Draft for Scripting', category: 'Video Planning & Drafts', description: 'Submit completed draft to the content writing pool' },
+
+  // Content Writing & Scripting
+  { key: 'content.view', name: 'View Script Requirements', category: 'Content Writing', description: 'Inspect script briefs and content requirements' },
+  { key: 'content.accept', name: 'Claim Script Writing', category: 'Content Writing', description: 'Accept and assign a video draft for scriptwriting' },
+  { key: 'content.submit', name: 'Submit Google Docs Script', category: 'Content Writing', description: 'Link Google Docs script and submit for review' },
+  { key: 'content.approve', name: 'Approve Script', category: 'Content Writing', description: 'Sign off on script content to unlock shoot stage' },
+
+  // Cinematography & Shot Logging
+  { key: 'cinematography.accept', name: 'Accept Shoot Assignment', category: 'Cinematography', description: 'Claim lead camera responsibility for a shoot' },
+  { key: 'cinematography.manage', name: 'Manage Shoot Team', category: 'Cinematography', description: 'Assign supporting cameraman, anchors, and crew' },
+  { key: 'shots.log', name: 'Log Scenes and Shots', category: 'Cinematography', description: 'Log chronological scenes, clips, takes, and confirm/reject shots' },
+
+  // Footage Handover
+  { key: 'footage.handover', name: 'Handover Media Chip', category: 'Footage Handover', description: 'Log physical storage media handover and folder name' },
+  { key: 'footage.receive', name: 'Confirm Footage Received', category: 'Footage Handover', description: 'Editor verification and confirmation of raw footage copy' },
+
+  // Video Editing & Versioning
+  { key: 'editing.accept', name: 'Claim Editing Assignment', category: 'Video Editing', description: 'Accept responsibility for video editing' },
+  { key: 'editing.submit', name: 'Submit Cut Version', category: 'Video Editing', description: 'Submit First Cut, Rework, or Final Cut review URL' },
+
+  // Thumbnails & Creative Assets
+  { key: 'thumbnail.manage', name: 'Manage Thumbnails', category: 'Thumbnail & Assets', description: 'Upload, version, and approve high-CTR video thumbnails' },
+
   // Audit & Governance
   { key: 'audit.view', name: 'View Audit Logs', category: 'Audit & Governance', description: 'Inspect immutable system-wide activity and security logs' },
 
@@ -78,52 +107,78 @@ export const PERMISSIONS_SEED = [
 
 export const ROLES_SEED = [
   { name: 'Admin', code: 'ADMIN', description: 'Complete system authority and management', is_system_role: true, is_system_admin: true },
-  { name: 'Cinematographer', code: 'CINEMATOGRAPHER', description: 'Handles camera shoots, lighting, and raw footage recording', is_system_role: true, is_system_admin: false },
+  { name: 'Digital Marketing Head', code: 'DM_HEAD', description: 'Supervises production pipeline, reviews cuts, and manages team workload', is_system_role: true, is_system_admin: false },
+  { name: 'Content Creator', code: 'CONTENT_CREATOR', description: 'Conceives video drafts, briefs, and on-camera presentations', is_system_role: true, is_system_admin: false },
+  { name: 'Content Writer', code: 'CONTENT_WRITER', description: 'Authors scripts, embeds Google Docs links, and incorporates feedback', is_system_role: true, is_system_admin: false },
+  { name: 'Anchor', code: 'ANCHOR', description: 'On-camera talent, dialogue delivery, and presentations', is_system_role: true, is_system_admin: false },
+  { name: 'Cinematographer', code: 'CINEMATOGRAPHER', description: 'Handles camera shoots, lighting, and real-time shot logging', is_system_role: true, is_system_admin: false },
   { name: 'Photographer', code: 'PHOTOGRAPHER', description: 'Handles stills, thumbnail shoots, and event photography', is_system_role: true, is_system_admin: false },
   { name: 'Video Editor', code: 'EDITOR', description: 'Edits raw footage, color grades, and crafts preview/final cuts', is_system_role: true, is_system_admin: false },
   { name: 'SEO Specialist', code: 'SEO', description: 'Optimizes titles, tags, descriptions, and oversees web/YouTube distribution', is_system_role: true, is_system_admin: false },
   { name: 'Graphic Designer', code: 'DESIGNER', description: 'Creates promotional banners, YouTube thumbnails, and graphics', is_system_role: true, is_system_admin: false },
-  { name: 'Content Creator', code: 'CONTENT_CREATOR', description: 'Drafts scripts, briefs, and on-camera presentations', is_system_role: true, is_system_admin: false },
   { name: 'Social Media Manager', code: 'SOCIAL_MEDIA_MGR', description: 'Publishes posts across channels, tracks live engagements and performance', is_system_role: true, is_system_admin: false },
   { name: 'Production Manager', code: 'PRODUCTION_MGR', description: 'Orchestrates the pipeline, reviews cuts, and assigns bottlenecks', is_system_role: true, is_system_admin: false },
 ];
 
+export const COURSES_SEED = [
+  { code: 'AGENCY_K', name: 'Agency K', description: 'Flagship digital agency curriculum & project explanations' },
+  { code: 'FULLSTACK_PYTHON', name: 'Full Stack Python', description: 'Python, Django, React master program' },
+  { code: 'JAVA_FULLSTACK', name: 'Java Full Stack', description: 'Java, Spring Boot, Microservices & Angular' },
+  { code: 'DEVOPS_CLOUD', name: 'DevOps & Cloud Mastery', description: 'AWS, Docker, Kubernetes, Terraform & CI/CD' },
+  { code: 'DATA_SCIENCE_AI', name: 'Data Science & AI', description: 'Machine Learning, Deep Learning, Generative AI & Data Analytics' },
+  { code: 'DIGITAL_MARKETING', name: 'Digital Marketing Masterclass', description: 'SEO, Social Media Marketing, Meta Ads & Video Production' },
+];
+
 // Initial role mapping (keys for non-admin roles)
 const ROLE_PERMISSIONS_MAPPING = {
+  DM_HEAD: [
+    'users.view', 'drafts.view', 'drafts.create', 'drafts.edit_all', 'drafts.submit',
+    'content.view', 'content.approve', 'cinematography.manage', 'shots.log',
+    'footage.handover', 'footage.receive', 'editing.accept', 'editing.submit',
+    'review.approve', 'thumbnail.manage', 'publishing.view', 'publishing.manage', 'publishing.publish',
+    'calendar.view_own', 'calendar.view_all', 'calendar.manage', 'workload.view_all',
+    'analytics.view', 'reports.view', 'reports.export', 'audit.view'
+  ],
+  CONTENT_CREATOR: [
+    'drafts.view', 'drafts.create', 'drafts.edit_own', 'drafts.submit',
+    'content.view', 'content.approve', 'calendar.view_own'
+  ],
+  CONTENT_WRITER: [
+    'drafts.view', 'drafts.create', 'drafts.edit_own', 'drafts.submit',
+    'content.view', 'content.accept', 'content.submit', 'calendar.view_own'
+  ],
+  ANCHOR: [
+    'drafts.view', 'content.view', 'calendar.view_own'
+  ],
   CINEMATOGRAPHER: [
-    'tasks.view', 'work.pool_view', 'work.accept', 'work.reject', 'work.start', 'work.complete',
+    'drafts.view', 'drafts.create', 'drafts.edit_own',
+    'cinematography.accept', 'shots.log', 'footage.handover',
     'proof.view', 'proof.upload', 'proof.delete', 'calendar.view_own'
   ],
   PHOTOGRAPHER: [
-    'tasks.view', 'work.pool_view', 'work.accept', 'work.reject', 'work.start', 'work.complete',
-    'proof.view', 'proof.upload', 'proof.delete', 'calendar.view_own'
+    'drafts.view', 'thumbnail.manage', 'proof.view', 'proof.upload', 'proof.delete', 'calendar.view_own'
   ],
   EDITOR: [
-    'tasks.view', 'work.pool_view', 'work.accept', 'work.reject', 'work.start', 'work.complete',
+    'drafts.view', 'footage.receive', 'editing.accept', 'editing.submit',
     'proof.view', 'proof.upload', 'proof.delete', 'calendar.view_own'
   ],
   SEO: [
-    'tasks.view', 'work.pool_view', 'work.accept', 'work.reject', 'work.start', 'work.complete',
-    'proof.view', 'proof.upload', 'proof.delete', 'publishing.view', 'publishing.publish', 'publishing.manage', 'calendar.view_own'
+    'drafts.view', 'content.view', 'thumbnail.manage',
+    'publishing.view', 'publishing.publish', 'publishing.manage', 'calendar.view_own'
   ],
   DESIGNER: [
-    'tasks.view', 'work.pool_view', 'work.accept', 'work.reject', 'work.start', 'work.complete',
-    'proof.view', 'proof.upload', 'proof.delete', 'calendar.view_own'
-  ],
-  CONTENT_CREATOR: [
-    'tasks.view', 'tasks.create', 'work.pool_view', 'work.accept', 'work.reject', 'work.start', 'work.complete',
-    'proof.view', 'proof.upload', 'proof.delete', 'calendar.view_own'
+    'drafts.view', 'thumbnail.manage', 'proof.view', 'proof.upload', 'calendar.view_own'
   ],
   SOCIAL_MEDIA_MGR: [
-    'tasks.view', 'production.view_all', 'work.pool_view', 'work.accept', 'work.reject', 'work.start', 'work.complete',
-    'proof.view', 'proof.upload', 'approval.review', 'publishing.view', 'publishing.publish', 'publishing.manage',
+    'drafts.view', 'publishing.view', 'publishing.publish', 'publishing.manage',
     'calendar.view_own', 'calendar.view_all', 'workload.view_all'
   ],
   PRODUCTION_MGR: [
     'users.view', 'tasks.view', 'tasks.create', 'tasks.edit', 'tasks.assign', 'tasks.reassign',
+    'drafts.view', 'drafts.create', 'drafts.edit_all', 'drafts.submit',
     'production.view_all', 'production.manage', 'production.rollback', 'work.pool_view', 'work.accept',
     'work.reject', 'work.start', 'work.complete', 'proof.view', 'proof.upload', 'proof.delete',
-    'approval.review', 'approval.approve', 'approval.reject', 'publishing.view', 'publishing.publish',
+    'approval.review', 'approval.approve', 'approval.reject', 'review.approve', 'publishing.view', 'publishing.publish',
     'calendar.view_own', 'calendar.view_all', 'calendar.manage', 'workload.view_all', 'analytics.view',
     'reports.view', 'reports.export', 'audit.view'
   ]
@@ -185,7 +240,18 @@ export async function runSeeds() {
     }
     logger.success('Mapped default role permissions.');
 
-    // 4. Seed Default Administrator Account
+    // 4. Seed Standard Courses
+    for (const c of COURSES_SEED) {
+      await connection.query(
+        `INSERT INTO courses (code, name, description, is_active)
+         VALUES (?, ?, ?, TRUE)
+         ON DUPLICATE KEY UPDATE name=VALUES(name), description=VALUES(description);`,
+        [c.code, c.name, c.description]
+      );
+    }
+    logger.success(`Seeded ${COURSES_SEED.length} production courses.`);
+
+    // 5. Seed Default Administrator Account
     const adminRoleId = roleMap.get('ADMIN');
     const defaultAdminEmail = 'admin@vcube.com';
     const defaultPasswordHash = await bcrypt.hash('Admin@12345', 12);
