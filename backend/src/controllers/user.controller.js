@@ -261,7 +261,7 @@ export const userController = {
 
   /**
    * POST /api/users/:id/resend-invite
-   * Re-generate a fresh 48-hour onboarding token and dispatch email via Resend
+   * Re-generate a fresh 48-hour onboarding token and dispatch email via Brevo
    */
   async resendInvitation(req, res, next) {
     try {

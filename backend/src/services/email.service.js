@@ -3,62 +3,158 @@ import { logger } from '../utils/logger.js';
 
 class EmailService {
   /**
-   * Send transactional email using Resend HTTPS API or Console Fallback
+   * Validate standard email address format
    */
-  async sendEmail({ to, subject, html, text }) {
-    if (env.EMAIL.API_KEY) {
+  isValidEmail(email) {
+    if (!email || typeof email !== 'string') return false;
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email.trim());
+  }
+
+  /**
+   * Strip HTML tags to produce a clean plain-text fallback
+   */
+  stripHtml(html) {
+    if (!html) return '';
+    return html
+      .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+      .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  /**
+   * Core transactional email sender using Brevo (formerly Sendinblue) v3 HTTPS API
+   * Endpoint: POST https://api.brevo.com/v3/smtp/email
+   * Authentication: api-key header
+   */
+  async sendEmail({ to, subject, html, text, recipientName = null }) {
+    // 1. Input Validation
+    const recipientEmails = Array.isArray(to) ? to : [to];
+    const validRecipients = recipientEmails
+      .map((item) => (typeof item === 'string' ? item.trim() : item?.email?.trim()))
+      .filter((email) => this.isValidEmail(email));
+
+    if (validRecipients.length === 0) {
+      logger.error('Brevo EmailService: No valid recipient email addresses provided.');
+      return {
+        success: false,
+        error: 'Invalid recipient email address.',
+        provider: 'brevo',
+      };
+    }
+
+    if (!subject || typeof subject !== 'string' || subject.trim() === '') {
+      return {
+        success: false,
+        error: 'Email subject is required.',
+        provider: 'brevo',
+      };
+    }
+
+    if (!html && !text) {
+      return {
+        success: false,
+        error: 'Email content (HTML or plain text) is required.',
+        provider: 'brevo',
+      };
+    }
+
+    const htmlContent = html || `<p>${text}</p>`;
+    const textContent = text || this.stripHtml(htmlContent);
+
+    // 2. Format Brevo Recipient Array
+    const brevoTo = validRecipients.map((email) => ({
+      email,
+      name: recipientName || email.split('@')[0],
+    }));
+
+    // 3. Dispatch via Brevo HTTPS API if API Key is configured
+    const apiKey = env.BREVO.API_KEY || env.EMAIL.API_KEY;
+
+    if (apiKey) {
       try {
-        const response = await fetch('https://api.resend.com/emails', {
+        const payload = {
+          sender: {
+            name: env.BREVO.SENDER_NAME || 'VCube MeFlow',
+            email: env.BREVO.SENDER_EMAIL || 'notifications@vcube.com',
+          },
+          to: brevoTo,
+          subject: subject.trim(),
+          htmlContent,
+          textContent,
+        };
+
+        const response = await fetch('https://api.brevo.com/v3/smtp/email', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${env.EMAIL.API_KEY}`,
+            Accept: 'application/json',
+            'api-key': apiKey,
           },
-          body: JSON.stringify({
-            from: env.EMAIL.FROM,
-            to: Array.isArray(to) ? to : [to],
-            subject,
-            html,
-            ...(text && { text }),
-          }),
+          body: JSON.stringify(payload),
         });
 
-        const data = await response.json();
+        const data = await response.json().catch(() => ({}));
+
         if (!response.ok) {
-          throw new Error(data.message || 'Failed to dispatch email via Resend API');
+          const errorMessage = data.message || data.code || `HTTP ${response.status} ${response.statusText}`;
+          logger.error(`Brevo API error for [${validRecipients.join(', ')}]: ${errorMessage}`);
+          this.logToConsole({ to: validRecipients, subject, html: htmlContent, error: errorMessage });
+          return {
+            success: false,
+            fallback: true,
+            error: errorMessage,
+            provider: 'brevo',
+          };
         }
 
-        logger.success(`Email dispatched successfully via Resend API to: ${to} (ID: ${data.id})`);
-        return { success: true, messageId: data.id, provider: 'resend' };
+        const messageId = data.messageId || 'dispatched';
+        logger.success(`Email dispatched successfully via Brevo to [${validRecipients.join(', ')}] (MessageId: ${messageId})`);
+        return {
+          success: true,
+          messageId,
+          provider: 'brevo',
+        };
       } catch (error) {
-        logger.error(`Resend API email dispatch failed for ${to}:`, error.message);
-        // Fall back to console logger so onboarding isn't blocked if key is invalid
-        this.logToConsole({ to, subject, html, error: error.message });
-        return { success: false, fallback: true, error: error.message };
+        logger.error(`Brevo HTTPS dispatch exception for [${validRecipients.join(', ')}]:`, error.message);
+        this.logToConsole({ to: validRecipients, subject, html: htmlContent, error: error.message });
+        return {
+          success: false,
+          fallback: true,
+          error: error.message,
+          provider: 'brevo',
+        };
       }
     } else {
-      // Development Mock Logger
-      this.logToConsole({ to, subject, html });
-      return { success: true, simulated: true, provider: 'console_mock' };
+      // 4. Safe Local Development / CI Mock Logger
+      this.logToConsole({ to: validRecipients, subject, html: htmlContent });
+      return {
+        success: true,
+        simulated: true,
+        provider: 'console_mock',
+      };
     }
   }
 
+  /**
+   * Local Console Logger for local development & fallback inspection
+   */
   logToConsole({ to, subject, html, error = null }) {
     console.log('\n======================================================');
-    console.log(`📧 [EMAIL NOTIFICATION SERVICE ${error ? 'FALLBACK' : 'DEV SIMULATION'}]`);
-    if (error) console.log(`⚠️  Live API Error: ${error}`);
-    console.log(`To:      ${to}`);
-    console.log(`From:    ${env.EMAIL.FROM}`);
+    console.log(`📧 [BREVO TRANSACTIONAL EMAIL ${error ? 'FALLBACK SIMULATION' : 'DEV SIMULATION'}]`);
+    if (error) console.log(`⚠️  Provider Notice: ${error}`);
+    console.log(`To:      ${Array.isArray(to) ? to.join(', ') : to}`);
+    console.log(`From:    ${env.BREVO.SENDER_NAME} <${env.BREVO.SENDER_EMAIL}>`);
     console.log(`Subject: ${subject}`);
     console.log('------------------------------------------------------');
-    // Extract any links for quick CLI clicking
     const linkMatch = html.match(/href="([^"]+)"/);
     if (linkMatch) {
-      console.log(`🔗 Primary Link: \x1b[36m${linkMatch[1]}\x1b[0m`);
+      console.log(`🔗 Action Link: \x1b[36m${linkMatch[1]}\x1b[0m`);
     }
+    const cleanText = this.stripHtml(html);
     console.log('Preview:');
-    // Print stripped plain text preview
-    const cleanText = html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
     console.log(cleanText.slice(0, 300) + (cleanText.length > 300 ? '...' : ''));
     console.log('======================================================\n');
   }
@@ -69,63 +165,175 @@ class EmailService {
   async sendInvitationEmail({ to, name, inviteUrl, roleName }) {
     const subject = `Welcome to VCube MeFlow - Set Up Your Account (${roleName})`;
     const html = `
-      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 8px; background: #ffffff;">
-        <h2 style="color: #1e293b; margin-top: 0;">Welcome to VCube MeFlow 👋</h2>
-        <p style="color: #475569; font-size: 16px; line-height: 1.5;">
-          Hello <strong>${name}</strong>,
-        </p>
-        <p style="color: #475569; font-size: 16px; line-height: 1.5;">
-          You have been invited to join the VCube Digital Marketing Operations platform as a <strong>${roleName}</strong>.
-        </p>
-        <p style="color: #475569; font-size: 16px; line-height: 1.5;">
-          Please click the button below to set up your password and access your daily work dashboard:
-        </p>
-        <div style="margin: 32px 0;">
-          <a href="${inviteUrl}" style="background-color: #2563eb; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 600; display: inline-block;">
-            Set Up Your Password &rarr;
-          </a>
-        </div>
-        <p style="color: #64748b; font-size: 14px;">
-          This invitation link is valid for <strong>48 hours</strong> and can only be used once.
-        </p>
-        <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 24px 0;" />
-        <p style="color: #94a3b8; font-size: 12px;">
-          If you did not expect this invitation, please contact your administrator.
-        </p>
-      </div>
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Welcome to VCube MeFlow</title>
+      </head>
+      <body style="margin: 0; padding: 0; background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+        <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #f8fafc; padding: 40px 16px;">
+          <tr>
+            <td align="center">
+              <table width="100%" max-width="600" border="0" cellspacing="0" cellpadding="0" style="max-width: 600px; background-color: #ffffff; border-radius: 16px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);">
+                <!-- Header -->
+                <tr>
+                  <td style="padding: 32px 32px 24px; border-bottom: 1px solid #f1f5f9; background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);">
+                    <table width="100%" border="0" cellspacing="0" cellpadding="0">
+                      <tr>
+                        <td>
+                          <div style="display: inline-block; width: 36px; height: 36px; line-height: 36px; border-radius: 10px; background: #2563eb; color: #ffffff; text-align: center; font-weight: 900; font-size: 18px;">V</div>
+                          <span style="color: #ffffff; font-size: 18px; font-weight: 800; margin-left: 10px; vertical-align: middle; letter-spacing: -0.5px;">VCube MeFlow</span>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+                <!-- Body -->
+                <tr>
+                  <td style="padding: 36px 32px;">
+                    <h2 style="color: #0f172a; font-size: 20px; font-weight: 700; margin: 0 0 16px;">Welcome aboard, ${name}! 👋</h2>
+                    <p style="color: #475569; font-size: 15px; line-height: 1.6; margin: 0 0 16px;">
+                      You have been invited to join the VCube Digital Marketing Operations workspace as a <strong style="color: #1e293b;">${roleName}</strong>.
+                    </p>
+                    <p style="color: #475569; font-size: 15px; line-height: 1.6; margin: 0 0 28px;">
+                      Your personal workspace allows you to claim available tasks, track video production stages, submit proofs, and collaborate with your team.
+                    </p>
+                    <div style="text-align: left; margin: 0 0 32px;">
+                      <a href="${inviteUrl}" target="_blank" style="display: inline-block; background-color: #2563eb; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 10px; font-weight: 700; font-size: 14px; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);">
+                        Set Up Your Account &rarr;
+                      </a>
+                    </div>
+                    <div style="padding: 16px; background-color: #f8fafc; border-radius: 10px; border: 1px solid #e2e8f0; margin-bottom: 24px;">
+                      <p style="color: #64748b; font-size: 13px; line-height: 1.5; margin: 0;">
+                        ⏱️ <strong>Security Notice:</strong> This invitation link is unique to you, expires in <strong>48 hours</strong>, and can only be used once.
+                      </p>
+                    </div>
+                    <p style="color: #94a3b8; font-size: 12px; line-height: 1.5; margin: 0;">
+                      If the button above does not work, copy and paste this URL into your browser:<br />
+                      <a href="${inviteUrl}" style="color: #2563eb; word-break: break-all;">${inviteUrl}</a>
+                    </p>
+                  </td>
+                </tr>
+                <!-- Footer -->
+                <tr>
+                  <td style="padding: 24px 32px; background-color: #f8fafc; border-top: 1px solid #f1f5f9; text-align: center;">
+                    <p style="color: #94a3b8; font-size: 12px; margin: 0;">
+                      VCube MeFlow Operations Platform • Sent securely via Brevo
+                    </p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+      </body>
+      </html>
     `;
 
-    return this.sendEmail({ to, subject, html });
+    return this.sendEmail({
+      to,
+      subject,
+      html,
+      recipientName: name,
+    });
   }
 
   /**
-   * Send Password Reset Email
+   * Send Password Reset Email with secure 1-hour expiration token
    */
   async sendPasswordResetEmail({ to, name, resetUrl }) {
     const subject = 'VCube MeFlow - Password Reset Request';
     const html = `
-      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 8px;">
-        <h2 style="color: #1e293b;">Password Reset Request</h2>
-        <p style="color: #475569; font-size: 16px;">
-          Hello <strong>${name}</strong>,
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Password Reset Request</title>
+      </head>
+      <body style="margin: 0; padding: 0; background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+        <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #f8fafc; padding: 40px 16px;">
+          <tr>
+            <td align="center">
+              <table width="100%" max-width="600" border="0" cellspacing="0" cellpadding="0" style="max-width: 600px; background-color: #ffffff; border-radius: 16px; border: 1px solid #e2e8f0; overflow: hidden;">
+                <tr>
+                  <td style="padding: 32px 32px 24px; border-bottom: 1px solid #f1f5f9; background: #0f172a;">
+                    <span style="color: #ffffff; font-size: 18px; font-weight: 800;">VCube MeFlow</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding: 36px 32px;">
+                    <h2 style="color: #0f172a; font-size: 20px; font-weight: 700; margin: 0 0 16px;">Password Reset Request</h2>
+                    <p style="color: #475569; font-size: 15px; line-height: 1.6; margin: 0 0 16px;">
+                      Hello <strong>${name}</strong>,
+                    </p>
+                    <p style="color: #475569; font-size: 15px; line-height: 1.6; margin: 0 0 28px;">
+                      We received a request to reset your password for your VCube MeFlow account. Click the button below to choose a new password:
+                    </p>
+                    <div style="text-align: left; margin: 0 0 32px;">
+                      <a href="${resetUrl}" target="_blank" style="display: inline-block; background-color: #2563eb; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 10px; font-weight: 700; font-size: 14px;">
+                        Reset Password &rarr;
+                      </a>
+                    </div>
+                    <p style="color: #64748b; font-size: 13px; line-height: 1.5; margin: 0 0 24px;">
+                      ⏱️ This link is valid for <strong>1 hour</strong>. If you did not request a password reset, you can safely ignore this email; your password will remain unchanged.
+                    </p>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding: 20px 32px; background-color: #f8fafc; border-top: 1px solid #f1f5f9; text-align: center;">
+                    <p style="color: #94a3b8; font-size: 12px; margin: 0;">
+                      VCube MeFlow • Security & Authentication Service
+                    </p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+      </body>
+      </html>
+    `;
+
+    return this.sendEmail({
+      to,
+      subject,
+      html,
+      recipientName: name,
+    });
+  }
+
+  /**
+   * Protected Admin Test Email utility to verify Brevo connectivity
+   */
+  async sendTestEmail({ to, requestedBy = 'Administrator' }) {
+    const subject = 'VCube MeFlow - Brevo Transactional Email Integration Test';
+    const html = `
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 12px; background: #ffffff;">
+        <h2 style="color: #10b981; margin-top: 0;">✅ Brevo Email Delivery Operational!</h2>
+        <p style="color: #334155; font-size: 15px; line-height: 1.5;">
+          This test email confirms that your <strong>Brevo (formerly Sendinblue) Transactional HTTPS API</strong> integration is working correctly in VCube MeFlow.
         </p>
-        <p style="color: #475569; font-size: 16px;">
-          We received a request to reset your password. Click the button below to choose a new password:
-        </p>
-        <div style="margin: 32px 0;">
-          <a href="${resetUrl}" style="background-color: #2563eb; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 600; display: inline-block;">
-            Reset Password &rarr;
-          </a>
+        <div style="background: #f8fafc; padding: 16px; border-radius: 8px; border: 1px solid #e2e8f0; font-size: 13px; color: #475569; margin: 20px 0;">
+          <p style="margin: 4px 0;"><strong>Sender Name:</strong> ${env.BREVO.SENDER_NAME}</p>
+          <p style="margin: 4px 0;"><strong>Sender Email:</strong> ${env.BREVO.SENDER_EMAIL}</p>
+          <p style="margin: 4px 0;"><strong>Triggered By:</strong> ${requestedBy}</p>
+          <p style="margin: 4px 0;"><strong>Timestamp:</strong> ${new Date().toISOString()}</p>
         </div>
-        <p style="color: #64748b; font-size: 14px;">
-          This link will expire in 1 hour. If you did not request this, you can safely ignore this email.
+        <p style="color: #64748b; font-size: 13px;">
+          All employee invitations, onboarding tokens, and password reset notifications will now be dispatched via Brevo.
         </p>
       </div>
     `;
 
-    return this.sendEmail({ to, subject, html });
+    return this.sendEmail({
+      to,
+      subject,
+      html,
+    });
   }
 }
 
 export const emailService = new EmailService();
-

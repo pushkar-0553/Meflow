@@ -11,7 +11,7 @@ VCube MeFlow is a workflow-driven operations platform designed specifically for 
 - **Frontend:** React 18, Vite, React Router v6, Tailwind CSS, Lucide Icons, Axios.
 - **Backend:** Node.js, Express.js, `mysql2/promise`, `express-session` with persistent store.
 - **Database:** TiDB Cloud Serverless / MySQL 8.0 with ACID transactions and atomic concurrency guards.
-- **Email:** Resend HTTPS REST API (Port 443) with automatic console simulation fallback during development.
+- **Email:** Brevo (formerly Sendinblue) HTTPS REST API (Port 443) with automatic console simulation fallback during development.
 - **Proof Storage:** Cloudinary (for photo/screenshot proofs) + External Drive URLs (Google Drive / Frame.io for raw footage) + Text Notes.
 
 ---
@@ -34,8 +34,10 @@ DB_PASSWORD=your_password
 DB_NAME=meflow
 DB_SSL=true
 
-# Resend HTTPS Email (Optional in dev - logs to console if empty)
-RESEND_API_KEY=
+# Brevo HTTPS Transactional Email (Optional in dev - logs to console if empty)
+BREVO_API_KEY=
+BREVO_SENDER_NAME=VCube MeFlow
+BREVO_SENDER_EMAIL=notifications@vcube.com
 
 # Cloudinary (Optional in dev - simulated if empty)
 CLOUDINARY_CLOUD_NAME=
@@ -72,7 +74,7 @@ vcube-meflow/
 │   │   ├── db/            # Schema DDL migrations and seed scripts
 │   │   ├── middleware/    # Error handling, persistent session, RBAC
 │   │   ├── routes/        # Modular REST API endpoints
-│   │   ├── services/      # Email (Resend HTTPS) & Storage (Cloudinary)
+│   │   ├── services/      # Email (Brevo HTTPS) & Storage (Cloudinary)
 │   │   ├── utils/         # Standardized API response helpers, Logger
 │   │   ├── app.js         # Express app configuration & middleware
 │   │   └── server.js      # Server boot & graceful shutdown

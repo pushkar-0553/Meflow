@@ -25,6 +25,7 @@ router.post('/logout', requireAuth, authController.logout);
 
 // Onboarding & Invitation Flow
 router.post('/invite', requireAuth, requireAdmin, authController.inviteEmployee);
+router.post('/test-email', requireAuth, requireAdmin, authController.testEmail);
 router.get('/verify-invite', authController.verifyInvite);
 router.post('/complete-invite', authController.completeInvite);
 

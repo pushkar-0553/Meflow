@@ -25,10 +25,16 @@ export const env = {
     SSL: process.env.DB_SSL === 'true',
   },
 
-  // Email (Resend HTTPS)
+  // Email (Brevo HTTPS Transactional API)
+  BREVO: {
+    API_KEY: process.env.BREVO_API_KEY || '',
+    SENDER_NAME: process.env.BREVO_SENDER_NAME || 'VCube MeFlow',
+    SENDER_EMAIL: process.env.BREVO_SENDER_EMAIL || 'notifications@vcube.com',
+  },
   EMAIL: {
-    API_KEY: process.env.RESEND_API_KEY || '',
-    FROM: process.env.EMAIL_FROM || 'VCube MeFlow <notifications@resend.dev>',
+    API_KEY: process.env.BREVO_API_KEY || '',
+    SENDER_NAME: process.env.BREVO_SENDER_NAME || 'VCube MeFlow',
+    SENDER_EMAIL: process.env.BREVO_SENDER_EMAIL || 'notifications@vcube.com',
   },
 
   // Storage (Cloudinary)

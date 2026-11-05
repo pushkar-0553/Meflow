@@ -118,7 +118,7 @@ export const Sidebar = () => {
       {/* Footer Info */}
       <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/60 text-xs text-slate-500 text-center">
         <p className="font-semibold text-slate-700">VCube Operations</p>
-        <p className="text-[11px] text-slate-400 mt-0.5">TiDB • Resend • Cloudinary</p>
+        <p className="text-[11px] text-slate-400 mt-0.5">TiDB • Brevo • Cloudinary</p>
       </div>
     </aside>
   );

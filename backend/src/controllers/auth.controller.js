@@ -259,7 +259,7 @@ export const authController = {
 
   /**
    * POST /api/auth/invite
-   * Admin/Manager invites an employee and dispatches Resend onboarding link
+   * Admin/Manager invites an employee and dispatches Brevo onboarding link
    */
   async inviteEmployee(req, res, next) {
     try {
@@ -320,7 +320,7 @@ export const authController = {
       // Construct onboarding link
       const inviteUrl = `${env.FRONTEND_URL}/set-password?token=${rawToken}`;
 
-      // Dispatch invitation email via Resend HTTPS API
+      // Dispatch invitation email via Brevo HTTPS API
       const emailResult = await emailService.sendInvitationEmail({
         to: data.email,
         name: data.name,
@@ -346,6 +346,37 @@ export const authController = {
           emailProvider: emailResult.provider,
           emailError: emailResult.error || null,
         },
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  /**
+   * POST /api/auth/test-email
+   * Admin-only utility to test Brevo transactional email delivery
+   */
+  async testEmail(req, res, next) {
+    try {
+      const targetEmail = req.body.email || req.user?.email;
+      if (!targetEmail) {
+        return errorResponse(res, {
+          statusCode: 400,
+          code: 'MISSING_EMAIL',
+          message: 'Target email is required for delivery test.',
+        });
+      }
+
+      const result = await emailService.sendTestEmail({
+        to: targetEmail,
+        requestedBy: req.user?.name || 'Administrator',
+      });
+
+      return successResponse(res, {
+        message: result.success
+          ? `Test email sent successfully to ${targetEmail} via ${result.provider}.`
+          : `Email test completed with fallback: ${result.error}`,
+        data: result,
       });
     } catch (error) {
       next(error);

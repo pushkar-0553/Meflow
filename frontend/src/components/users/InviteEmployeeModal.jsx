@@ -65,7 +65,7 @@ export const InviteEmployeeModal = ({ isOpen, onClose, onUserInvited }) => {
 
       if (res.success) {
         if (res.data?.emailDispatched) {
-          toast.success(`Invitation sent to ${email} via Resend!`);
+          toast.success(`Invitation sent to ${email} via Brevo!`);
         } else {
           toast.success(`Employee created! Copy the onboarding link below.`);
         }
@@ -99,7 +99,7 @@ export const InviteEmployeeModal = ({ isOpen, onClose, onUserInvited }) => {
             </div>
             <div>
               <h2 className="text-base font-bold text-slate-900">Invite New Employee</h2>
-              <p className="text-xs text-slate-500">Send a single-use setup link via Resend HTTPS</p>
+              <p className="text-xs text-slate-500">Send a single-use setup link via Brevo HTTPS</p>
             </div>
           </div>
           <button
@@ -127,7 +127,7 @@ export const InviteEmployeeModal = ({ isOpen, onClose, onUserInvited }) => {
                     <>
                       An invitation email has been sent to{' '}
                       <strong className="text-slate-800">{inviteResult.user.email}</strong> via{' '}
-                      <span className="font-semibold text-blue-600 uppercase">Resend</span>.
+                      <span className="font-semibold text-blue-600 uppercase">Brevo</span>.
                     </>
                   ) : (
                     <>
@@ -138,19 +138,19 @@ export const InviteEmployeeModal = ({ isOpen, onClose, onUserInvited }) => {
                 </p>
               </div>
 
-              {/* Resend Testing Sandbox Warning if not delivered directly */}
+              {/* Delivery Notice if simulated or fallback */}
               {!inviteResult.emailDispatched && (
                 <div className="p-3.5 bg-amber-50 border border-amber-200/80 rounded-2xl text-left space-y-1.5">
                   <div className="flex items-center gap-1.5 font-bold text-amber-900 text-xs">
                     <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0" />
-                    <span>Resend Sandbox Notice (No Direct Email Sent)</span>
+                    <span>Brevo Delivery Notice</span>
                   </div>
                   <p className="text-[11px] text-amber-800 leading-relaxed">
-                    Resend free accounts only send live emails to your account owner address (<strong>vcube.projects.pushkar@gmail.com</strong>).
-                    To onboard other recipients directly to their inbox, add your domain at <a href="https://resend.com/domains" target="_blank" rel="noreferrer" className="underline font-bold text-amber-950">resend.com/domains</a>.
+                    Live email dispatch was simulated or pending Brevo API key configuration.
+                    Ensure your <strong>BREVO_API_KEY</strong> and verified sender email are active in Render.
                   </p>
                   <p className="text-[11px] font-semibold text-amber-900">
-                    👉 In the meantime, simply copy the direct link below and share it with the employee via WhatsApp, Slack, or email:
+                    👉 In the meantime, you can copy the direct onboarding link below and share it directly with the employee:
                   </p>
                 </div>
               )}

@@ -85,7 +85,7 @@ export const UsersPage = () => {
       const res = await apiClient.post(`/users/${user.id}/resend-invite`);
       if (res.success) {
         if (res.data?.emailDispatched) {
-          toast.success(`Invitation email sent to ${user.email} via Resend!`);
+          toast.success(`Invitation email sent to ${user.email} via Brevo!`);
         } else {
           toast.success(`New onboarding link generated and copied to clipboard!`);
         }
@@ -136,7 +136,7 @@ export const UsersPage = () => {
             Employee Directory & Roles
           </h1>
           <p className="text-xs font-medium text-slate-500 mt-1">
-            Manage employee assignments, trigger Resend invitations, and configure user-specific permission overrides.
+            Manage employee assignments, dispatch Brevo invitations, and configure user-specific permission overrides.
           </p>
         </div>
 
@@ -347,7 +347,7 @@ export const UsersPage = () => {
                         {user.status === 'INVITED' && (
                           <button
                             onClick={() => handleResendInvite(user)}
-                            title="Resend Invitation Email via Resend"
+                            title="Re-send Invitation Email via Brevo"
                             className="p-1.5 text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
                           >
                             <Send className="w-4 h-4" />

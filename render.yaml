@@ -29,10 +29,12 @@ services:
         value: "test"
       - key: DB_SSL
         value: "true"
-      - key: RESEND_API_KEY
+      - key: BREVO_API_KEY
         sync: false
-      - key: EMAIL_FROM
-        value: VCube MeFlow <onboarding@resend.dev>
+      - key: BREVO_SENDER_NAME
+        value: VCube MeFlow
+      - key: BREVO_SENDER_EMAIL
+        sync: false
       - key: CLOUDINARY_CLOUD_NAME
         sync: false
       - key: CLOUDINARY_API_KEY

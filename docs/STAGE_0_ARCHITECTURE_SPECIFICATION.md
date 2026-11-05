@@ -106,7 +106,7 @@ flowchart TD
         AuthZ["Centralized Effective Permission Engine"]
         DirectUploadSvc["Presigned Storage Service"]
         AuditSvc["Audit & Activity Logger"]
-        EmailSvc["HTTPS Email Service (Resend/SendGrid API)"]
+        EmailSvc["HTTPS Email Service (Brevo API)"]
 
         API --> SessionMW
         SessionMW --> AuthZ
@@ -129,7 +129,7 @@ flowchart TD
     AuthZ -- "RBAC & Constraint Checks" --> RBACDB
     API -- "Transactions & Conditional Writes" --> ProductionDB
     AuditSvc -- "Append-only" --> AuditDB
-    EmailSvc -- "HTTPS POST (Port 443)" --> ResendCloud["External Email Provider API"]
+    EmailSvc -- "HTTPS POST (Port 443)" --> BrevoCloud["Brevo Email API"]
 ```
 
 ---
@@ -295,7 +295,7 @@ sequenceDiagram
     actor Admin
     participant Server as Express Backend
     participant DB as TiDB Cloud
-    participant Mail as HTTPS Email Service (Resend)
+    participant Mail as HTTPS Email Service (Brevo)
     actor Employee
 
     Admin->>Server: POST /api/users (Name, Email, Role, Department)
@@ -591,7 +591,7 @@ See Table in Section N of the master design document for the complete 40+ REST A
 - **Backend:** Node.js + Express on Render Web Service.
 - **Database:** TiDB Cloud Serverless (MySQL-compatible, persistent session store).
 - **Object Storage:** Cloudflare R2 (10 GB free tier with zero egress costs).
-- **Email:** Resend HTTPS REST API (Port 443).
+- **Email:** Brevo HTTPS REST API (Port 443).
 
 ---
 
