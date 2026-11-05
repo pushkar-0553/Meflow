@@ -9,8 +9,26 @@ export const apiClient = axios.create({
   },
 });
 
+// Request Interceptor: Attach Bearer token from localStorage for robust cross-domain authentication
+apiClient.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('meflow_token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
+let unauthorizedDispatched = false;
+
+// Response Interceptor: Handle data unwrapping and centralized error propagation
 apiClient.interceptors.response.use(
-  (response) => response.data,
+  (response) => {
+    unauthorizedDispatched = false; // Reset on successful communication
+    return response.data;
+  },
   (error) => {
     const customError = {
       message: error.response?.data?.message || error.message || 'Something went wrong',
@@ -19,9 +37,20 @@ apiClient.interceptors.response.use(
       details: error.response?.data?.details || null,
     };
 
-    // If 401 Unauthorized and not on an auth route, broadcast auth expiration
-    if (customError.statusCode === 401 && !window.location.pathname.startsWith('/login') && !window.location.pathname.startsWith('/set-password')) {
-      window.dispatchEvent(new CustomEvent('meflow:unauthorized'));
+    // If 401 Unauthorized and not already on auth/login paths, broadcast session expiration
+    if (
+      customError.statusCode === 401 &&
+      !window.location.pathname.startsWith('/login') &&
+      !window.location.pathname.startsWith('/set-password')
+    ) {
+      localStorage.removeItem('meflow_token');
+      if (!unauthorizedDispatched) {
+        unauthorizedDispatched = true;
+        window.dispatchEvent(new CustomEvent('meflow:unauthorized'));
+        setTimeout(() => {
+          unauthorizedDispatched = false;
+        }, 1500);
+      }
     }
 
     return Promise.reject(customError);
@@ -29,4 +58,3 @@ apiClient.interceptors.response.use(
 );
 
 export default apiClient;
-

@@ -7,6 +7,7 @@ import { emailService } from '../services/email.service.js';
 import { getEffectivePermissions } from '../services/authz.service.js';
 import { successResponse, errorResponse } from '../utils/apiResponse.js';
 import { logger } from '../utils/logger.js';
+import { signToken, verifyToken } from '../utils/jwt.js';
 
 // Input Validation Schemas
 const loginSchema = z.object({
@@ -114,6 +115,14 @@ export const authController = {
         },
       };
 
+      // Generate signed JWT access token for cross-domain Bearer auth
+      const token = signToken({
+        id: user.id,
+        email: user.email,
+        role_id: user.role_id,
+        role_code: user.role_code,
+      });
+
       // Record activity
       await query(
         `INSERT INTO activity_logs (actor_id, action, entity, entity_id, metadata, ip_address)
@@ -124,6 +133,7 @@ export const authController = {
       return successResponse(res, {
         message: 'Signed in successfully.',
         data: {
+          token,
           user: req.session.user,
           permissions: Array.from(effectivePerms),
         },
@@ -139,11 +149,22 @@ export const authController = {
    */
   async getMe(req, res, next) {
     try {
-      if (!req.session || !req.session.user || !req.session.user.id) {
+      let userId = req.session?.user?.id || req.user?.id;
+
+      // Fallback: check Authorization Bearer header if session is empty (cross-domain support)
+      if (!userId && req.headers.authorization?.startsWith('Bearer ')) {
+        const rawToken = req.headers.authorization.split(' ')[1];
+        const decoded = verifyToken(rawToken);
+        if (decoded && decoded.id) {
+          userId = decoded.id;
+        }
+      }
+
+      if (!userId) {
         return errorResponse(res, {
           statusCode: 401,
           code: 'UNAUTHENTICATED',
-          message: 'No active session.',
+          message: 'No active session or valid authorization token found.',
         });
       }
 
@@ -153,11 +174,11 @@ export const authController = {
          FROM users u
          JOIN roles r ON u.role_id = r.id
          WHERE u.id = ?`,
-        [req.session.user.id]
+        [userId]
       );
 
       if (!users || users.length === 0 || users[0].status !== 'ACTIVE') {
-        req.session.destroy();
+        if (req.session) req.session.destroy(() => {});
         return errorResponse(res, {
           statusCode: 401,
           code: 'SESSION_INVALID',
@@ -168,8 +189,7 @@ export const authController = {
       const user = users[0];
       const effectivePerms = await getEffectivePermissions(user.id);
 
-      // Refresh session object
-      req.session.user = {
+      const userContext = {
         id: user.id,
         name: user.name,
         email: user.email,
@@ -187,11 +207,16 @@ export const authController = {
         },
       };
 
+      // Refresh session object if session exists
+      if (req.session) {
+        req.session.user = userContext;
+      }
+
       return successResponse(res, {
         message: 'Current authenticated user profile',
         data: {
           user: {
-            ...req.session.user,
+            ...userContext,
             phone: user.phone,
             last_login_at: user.last_login_at,
           },

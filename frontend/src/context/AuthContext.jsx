@@ -17,10 +17,12 @@ export const AuthProvider = ({ children }) => {
         setUser(response.data.user);
         setPermissions(new Set(response.data.permissions || []));
       } else {
+        localStorage.removeItem('meflow_token');
         setUser(null);
         setPermissions(new Set());
       }
     } catch {
+      localStorage.removeItem('meflow_token');
       setUser(null);
       setPermissions(new Set());
     } finally {
@@ -32,6 +34,7 @@ export const AuthProvider = ({ children }) => {
     fetchCurrentUser();
 
     const handleUnauthorized = () => {
+      localStorage.removeItem('meflow_token');
       setUser(null);
       setPermissions(new Set());
     };
@@ -43,6 +46,9 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     const response = await apiClient.post('/auth/login', { email, password });
     if (response.success && response.data?.user) {
+      if (response.data.token) {
+        localStorage.setItem('meflow_token', response.data.token);
+      }
       setUser(response.data.user);
       setPermissions(new Set(response.data.permissions || []));
       toast.success(`Welcome back, ${response.data.user.name}!`);
@@ -57,6 +63,7 @@ export const AuthProvider = ({ children }) => {
     } catch (err) {
       console.warn('Logout API error:', err);
     } finally {
+      localStorage.removeItem('meflow_token');
       setUser(null);
       setPermissions(new Set());
       toast.info('You have been signed out.');
@@ -118,4 +125,3 @@ export const useAuth = () => {
   }
   return context;
 };
-

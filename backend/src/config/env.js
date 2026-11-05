@@ -13,6 +13,7 @@ export const env = {
   NODE_ENV: process.env.NODE_ENV || 'development',
   FRONTEND_URL: (process.env.FRONTEND_URL || 'http://localhost:5173').replace(/\/+$/, ''),
   SESSION_SECRET: process.env.SESSION_SECRET || 'meflow-dev-session-secret-change-in-prod-1234',
+  JWT_SECRET: process.env.JWT_SECRET || process.env.SESSION_SECRET || 'meflow-secure-token-secret-default-key-32b',
 
   // Database
   DB: {
