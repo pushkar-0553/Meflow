@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "start": "node src/server.js",
-    "build": "echo 'Backend ready'",
+    "build": "npm install",
     "dev": "node --watch src/server.js",
     "migrate": "node src/db/migrate.js",
     "seed": "node src/db/seed.js"
@@ -23,7 +23,6 @@
     "helmet": "^8.0.0",
     "morgan": "^1.10.0",
     "mysql2": "^3.12.0",
-    "vcube-meflow": "file:..",
     "zod": "^3.24.1"
   }
 }
