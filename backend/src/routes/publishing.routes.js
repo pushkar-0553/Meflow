@@ -19,5 +19,17 @@ router.get(
   publishingController.listPublications
 );
 
+router.post(
+  '/projects/:projectId/platform',
+  requirePermission(['publishing.publish', 'publishing.manage']),
+  publishingController.recordProjectPlatformPublish
+);
+
+router.post(
+  '/projects/:projectId/complete',
+  requirePermission(['publishing.publish', 'publishing.manage']),
+  publishingController.completeProjectPublishing
+);
+
 export default router;
 

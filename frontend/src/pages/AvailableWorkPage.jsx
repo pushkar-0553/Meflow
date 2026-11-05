@@ -13,6 +13,8 @@ import {
   AlertCircle,
   ArrowRight,
   Shield,
+  Film,
+  ExternalLink,
 } from 'lucide-react';
 
 export const AvailableWorkPage = () => {
@@ -40,13 +42,33 @@ export const AvailableWorkPage = () => {
   }, []);
 
   const handleAccept = async (stage) => {
-    setClaimingId(stage.stage_id);
+    const targetKey = stage.is_video_project ? `proj_${stage.project_id}` : stage.stage_id;
+    setClaimingId(targetKey);
+
     try {
-      const res = await apiClient.post(`/work/${stage.stage_id}/accept`);
-      if (res.success) {
-        toast.success(res.message);
-        // Refresh and navigate to My Bucket
-        navigate('/my-bucket');
+      if (stage.is_video_project) {
+        let endpoint = '';
+        if (stage.stage_type === 'CONTENT_WRITING') endpoint = `/content/${stage.project_id}/accept`;
+        else if (stage.stage_type === 'CINEMATOGRAPHY') endpoint = `/shoots/${stage.project_id}/accept`;
+        else if (stage.stage_type === 'VIDEO_EDITING') endpoint = `/editing/${stage.project_id}/accept`;
+
+        if (endpoint) {
+          const res = await apiClient.post(endpoint);
+          if (res.success) {
+            toast.success(res.message);
+            navigate(`/projects/${stage.project_id}`);
+            return;
+          }
+        } else {
+          navigate(`/projects/${stage.project_id}`);
+          return;
+        }
+      } else {
+        const res = await apiClient.post(`/work/${stage.stage_id}/accept`);
+        if (res.success) {
+          toast.success(res.message);
+          navigate('/my-bucket');
+        }
       }
     } catch (err) {
       if (err.statusCode === 409) {
@@ -81,7 +103,7 @@ export const AvailableWorkPage = () => {
             Available Work
           </h1>
           <p className="text-xs font-medium text-slate-500 mt-1">
-            Pick up ready assignments matching your role and place them into your personal bucket.
+            Pick up ready video scripts, camera shoots, edits, and thumbnail assignments matching your role.
           </p>
         </div>
       </div>
@@ -94,7 +116,7 @@ export const AvailableWorkPage = () => {
           </div>
           <h3 className="text-base font-bold text-slate-800">You're All Caught Up!</h3>
           <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
-            There are currently no unclaimed tasks waiting for your role. New shoots and edits will appear here as stages unlock.
+            There are currently no unclaimed tasks waiting for your role. New shoots, scripts, and cuts will appear here as production advances.
           </p>
           <button
             onClick={() => navigate('/my-bucket')}
@@ -107,11 +129,12 @@ export const AvailableWorkPage = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {availableStages.map((stage) => {
-            const isClaiming = claimingId === stage.stage_id;
+            const targetKey = stage.is_video_project ? `proj_${stage.project_id}` : stage.stage_id;
+            const isClaiming = claimingId === targetKey;
 
             return (
               <div
-                key={stage.stage_id}
+                key={targetKey}
                 className="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-sm hover:border-blue-300 hover:shadow-md transition-all flex flex-col justify-between"
               >
                 <div>
@@ -123,12 +146,17 @@ export const AvailableWorkPage = () => {
                     <div className="flex items-center gap-1.5">
                       <StatusBadge status={stage.priority} />
                       <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
-                        {stage.stage_type}
+                        {stage.stage_type.replace(/_/g, ' ')}
                       </span>
                     </div>
                   </div>
 
-                  <h3 className="text-base font-bold text-slate-900 leading-snug">
+                  <h3
+                    onClick={() => stage.is_video_project && navigate(`/projects/${stage.project_id}`)}
+                    className={`text-base font-bold text-slate-900 leading-snug ${
+                      stage.is_video_project ? 'cursor-pointer hover:text-blue-600' : ''
+                    }`}
+                  >
                     {stage.task_title}
                   </h3>
 
@@ -138,24 +166,18 @@ export const AvailableWorkPage = () => {
                       <div className="flex items-center gap-2">
                         <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                         <span>
+                          Target Date:{' '}
                           {new Date(stage.scheduled_start).toLocaleDateString('en-US', {
                             month: 'short',
                             day: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit',
                           })}
                         </span>
                       </div>
                     )}
 
                     <div className="flex items-center gap-2">
-                      <Clock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                      <span>Expected Duration: {stage.expected_duration_minutes || 120} mins</span>
-                    </div>
-
-                    <div className="flex items-center gap-2">
                       <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                      <span>{stage.location || 'Studio Set'}</span>
+                      <span>{stage.location || 'VCube Studio Main'}</span>
                     </div>
                   </div>
                 </div>
@@ -176,7 +198,7 @@ export const AvailableWorkPage = () => {
                     ) : (
                       <>
                         <Sparkles className="w-4 h-4" />
-                        Accept Assignment
+                        {stage.is_video_project ? 'Accept & Open Workspace' : 'Accept Assignment'}
                       </>
                     )}
                   </button>
@@ -189,4 +211,3 @@ export const AvailableWorkPage = () => {
     </div>
   );
 };
-

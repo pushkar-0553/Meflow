@@ -133,5 +133,131 @@ export const publishingController = {
       next(error);
     }
   },
+
+  /**
+   * POST /api/publishing/projects/:projectId/platform
+   * Publish video project to a specific social channel (YouTube, Instagram, Facebook, etc.)
+   */
+  async recordProjectPlatformPublish(req, res, next) {
+    try {
+      const projectId = parseInt(req.params.projectId, 10);
+      const data = z.object({
+        platform: z.enum(['YOUTUBE', 'INSTAGRAM', 'FACEBOOK', 'LINKEDIN', 'WEBSITE', 'OTHER']),
+        post_url: z.string().url('A valid post URL is required'),
+        caption: z.string().optional().nullable(),
+        hashtags: z.string().optional().nullable(),
+        proof_screenshot_url: z.string().optional().nullable(),
+        notes: z.string().optional().nullable(),
+      }).parse(req.body);
+
+      const userId = req.user?.id;
+
+      await transaction(async (conn) => {
+        // Upsert platform publication record
+        await conn.query(
+          `INSERT INTO platform_publications (
+            video_project_id, platform, status, published_by, published_at,
+            post_url, caption, hashtags, proof_screenshot_url, notes
+          ) VALUES (?, ?, 'PUBLISHED', ?, NOW(), ?, ?, ?, ?, ?)
+          ON DUPLICATE KEY UPDATE
+            status = 'PUBLISHED',
+            published_by = VALUES(published_by),
+            published_at = NOW(),
+            post_url = VALUES(post_url),
+            caption = VALUES(caption),
+            hashtags = VALUES(hashtags),
+            proof_screenshot_url = VALUES(proof_screenshot_url),
+            notes = VALUES(notes),
+            updated_at = NOW()`,
+          [
+            projectId,
+            data.platform,
+            userId,
+            data.post_url.trim(),
+            data.caption || null,
+            data.hashtags || null,
+            data.proof_screenshot_url || null,
+            data.notes || null,
+          ]
+        );
+
+        // Activity log
+        await conn.query(
+          `INSERT INTO activity_logs (actor_id, action, entity, entity_id, metadata, ip_address)
+           VALUES (?, 'PROJECT_PUBLISHED_TO_PLATFORM', 'VIDEO_PROJECT', ?, ?, ?)`,
+          [userId, projectId, JSON.stringify({ platform: data.platform, url: data.post_url }), req.ip]
+        );
+      });
+
+      return successResponse(res, {
+        message: `Video successfully recorded as published on ${data.platform}!`,
+        data: { platform: data.platform, post_url: data.post_url },
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  /**
+   * POST /api/publishing/projects/:projectId/complete
+   * Mark entire video project as COMPLETED & stage = PUBLISHED
+   */
+  async completeProjectPublishing(req, res, next) {
+    try {
+      const projectId = parseInt(req.params.projectId, 10);
+      const userId = req.user?.id;
+
+      const publishedRows = await query(
+        `SELECT COUNT(*) AS count FROM platform_publications
+         WHERE video_project_id = ? AND status = 'PUBLISHED'`,
+        [projectId]
+      );
+
+      if (publishedRows[0]?.count === 0) {
+        return errorResponse(res, {
+          statusCode: 400,
+          message: 'At least one platform must have a verified published post URL before completing.',
+        });
+      }
+
+      await transaction(async (conn) => {
+        await conn.query(
+          `UPDATE video_projects SET
+            overall_status = 'COMPLETED',
+            current_stage = 'PUBLISHED',
+            completed_at = NOW(),
+            updated_at = NOW()
+           WHERE id = ?`,
+          [projectId]
+        );
+
+        const [projects] = await conn.query(`SELECT title FROM video_projects WHERE id = ?`, [projectId]);
+        const projectTitle = projects[0]?.title || 'Video Project';
+
+        // Notify entire team
+        await conn.query(
+          `INSERT INTO notifications (user_id, type, title, message, reference_entity, reference_id)
+           SELECT u.id, 'PROJECT_PUBLISHED_COMPLETE', '🎉 Video Production Completed & Live!',
+                  CONCAT('Video project ', ?, ' has completed all 8 production stages and is officially live!'), 'VIDEO_PROJECT', ?
+           FROM users u
+           WHERE u.status = 'ACTIVE'`,
+          [projectTitle, projectId]
+        );
+
+        await conn.query(
+          `INSERT INTO activity_logs (actor_id, action, entity, entity_id, metadata, ip_address)
+           VALUES (?, 'VIDEO_PROJECT_FULLY_COMPLETED', 'VIDEO_PROJECT', ?, ?, ?)`,
+          [userId, projectId, JSON.stringify({ completedAt: new Date().toISOString() }), req.ip]
+        );
+      });
+
+      return successResponse(res, {
+        message: 'Congratulations! Video project has completed all 8 production stages and is officially live.',
+        data: { overall_status: 'COMPLETED', current_stage: 'PUBLISHED' },
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
 };
 

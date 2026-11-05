@@ -21,6 +21,7 @@ import {
   CheckCircle,
   MessageSquare,
   FileCheck2,
+  Film,
 } from 'lucide-react';
 
 export const MyBucketPage = () => {
@@ -178,7 +179,12 @@ export const MyBucketPage = () => {
                   <StatusBadge status={item.priority} />
                 </div>
 
-                <h3 className="text-base font-bold text-slate-900 truncate">
+                <h3
+                  onClick={() => item.is_video_project && navigate(`/projects/${item.project_id}`)}
+                  className={`text-base font-bold text-slate-900 truncate ${
+                    item.is_video_project ? 'cursor-pointer hover:text-blue-600' : ''
+                  }`}
+                >
                   {item.task_title}
                 </h3>
 
@@ -220,73 +226,85 @@ export const MyBucketPage = () => {
 
               {/* Action Buttons */}
               <div className="flex items-center gap-2 shrink-0">
-                {/* Start Work Button */}
-                {item.assignment_status === 'ACCEPTED' && item.stage_status !== 'IN_PROGRESS' && item.stage_status !== 'CHANGES_REQUESTED' && (
+                {item.is_video_project ? (
                   <button
-                    onClick={() => handleStartWork(item.stage_id)}
-                    className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors shadow-xs"
+                    onClick={() => navigate(`/projects/${item.project_id}`)}
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm shadow-blue-500/20"
                   >
-                    <Play className="w-3.5 h-3.5 fill-current" />
-                    Start Work
+                    <Film className="w-3.5 h-3.5" />
+                    Open Video Workspace
                   </button>
-                )}
+                ) : (
+                  <>
+                    {/* Start Work Button */}
+                    {item.assignment_status === 'ACCEPTED' && item.stage_status !== 'IN_PROGRESS' && item.stage_status !== 'CHANGES_REQUESTED' && (
+                      <button
+                        onClick={() => handleStartWork(item.stage_id)}
+                        className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors shadow-xs"
+                      >
+                        <Play className="w-3.5 h-3.5 fill-current" />
+                        Start Work
+                      </button>
+                    )}
 
-                {/* Complete Stage or Submit for Review Button */}
-                {item.stage_status === 'IN_PROGRESS' && (
-                  <button
-                    onClick={() => setActiveCompleteStage(item)}
-                    className={`px-3.5 py-2 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors shadow-xs ${
-                      item.is_approval_gate
-                        ? 'bg-purple-600 hover:bg-purple-700 shadow-purple-500/20'
-                        : 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-500/20'
-                    }`}
-                  >
-                    <CheckCircle className="w-3.5 h-3.5" />
-                    {item.is_approval_gate ? 'Submit for Review' : 'Complete Stage'}
-                  </button>
-                )}
+                    {/* Complete Stage or Submit for Review Button */}
+                    {item.stage_status === 'IN_PROGRESS' && (
+                      <button
+                        onClick={() => setActiveCompleteStage(item)}
+                        className={`px-3.5 py-2 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors shadow-xs ${
+                          item.is_approval_gate
+                            ? 'bg-purple-600 hover:bg-purple-700 shadow-purple-500/20'
+                            : 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-500/20'
+                        }`}
+                      >
+                        <CheckCircle className="w-3.5 h-3.5" />
+                        {item.is_approval_gate ? 'Submit for Review' : 'Complete Stage'}
+                      </button>
+                    )}
 
-                {/* Resubmit after Rework */}
-                {item.stage_status === 'CHANGES_REQUESTED' && (
-                  <button
-                    onClick={() => setActiveCompleteStage(item)}
-                    className="px-3.5 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors shadow-xs shadow-purple-500/20"
-                  >
-                    <Sparkles className="w-3.5 h-3.5" />
-                    Resubmit Cut
-                  </button>
-                )}
+                    {/* Resubmit after Rework */}
+                    {item.stage_status === 'CHANGES_REQUESTED' && (
+                      <button
+                        onClick={() => setActiveCompleteStage(item)}
+                        className="px-3.5 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors shadow-xs shadow-purple-500/20"
+                      >
+                        <Sparkles className="w-3.5 h-3.5" />
+                        Resubmit Cut
+                      </button>
+                    )}
 
-                {/* Release back to pool */}
-                {item.stage_status !== 'APPROVED' && item.stage_status !== 'SUBMITTED' && (
-                  <button
-                    onClick={() => handleRelease(item.stage_id, item.task_title)}
-                    title="Release assignment back to available work pool"
-                    className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-colors"
-                  >
-                    <RotateCcw className="w-4 h-4" />
-                  </button>
-                )}
+                    {/* Release back to pool */}
+                    {item.stage_status !== 'APPROVED' && item.stage_status !== 'SUBMITTED' && (
+                      <button
+                        onClick={() => handleRelease(item.stage_id, item.task_title)}
+                        title="Release assignment back to available work pool"
+                        className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-colors"
+                      >
+                        <RotateCcw className="w-4 h-4" />
+                      </button>
+                    )}
 
-                {/* View Proofs Button */}
-                {item.proof_count > 0 && (
-                  <button
-                    onClick={() => setActiveViewProofsStage(item)}
-                    className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors"
-                  >
-                    <FileCheck2 className="w-3.5 h-3.5 text-blue-600" />
-                    Proofs ({item.proof_count})
-                  </button>
-                )}
+                    {/* View Proofs Button */}
+                    {item.proof_count > 0 && (
+                      <button
+                        onClick={() => setActiveViewProofsStage(item)}
+                        className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors"
+                      >
+                        <FileCheck2 className="w-3.5 h-3.5 text-blue-600" />
+                        Proofs ({item.proof_count})
+                      </button>
+                    )}
 
-                {/* Upload Proof button */}
-                <button
-                  onClick={() => setActiveUploadProofStage(item)}
-                  className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors shadow-xs shadow-blue-500/20"
-                >
-                  <UploadCloud className="w-3.5 h-3.5" />
-                  Upload Proof
-                </button>
+                    {/* Upload Proof button */}
+                    <button
+                      onClick={() => setActiveUploadProofStage(item)}
+                      className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors shadow-xs shadow-blue-500/20"
+                    >
+                      <UploadCloud className="w-3.5 h-3.5" />
+                      Upload Proof
+                    </button>
+                  </>
+                )}
               </div>
             </div>
           ))}

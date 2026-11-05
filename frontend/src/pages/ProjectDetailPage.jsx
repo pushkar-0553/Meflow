@@ -29,6 +29,11 @@ import {
   X,
   Play,
   RotateCcw,
+  Trash2,
+  Edit3,
+  UploadCloud,
+  CheckSquare,
+  Sparkles,
 } from 'lucide-react';
 
 export const ProjectDetailPage = () => {
@@ -39,33 +44,115 @@ export const ProjectDetailPage = () => {
 
   const [projectData, setProjectData] = useState(null);
   const [timeline, setTimeline] = useState([]);
+  const [usersList, setUsersList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
+  const [actionLoading, setActionLoading] = useState(false);
 
   // Stage 2 Script Workspace states
   const [googleDocsUrl, setGoogleDocsUrl] = useState('');
   const [scriptVersion, setScriptVersion] = useState(1);
   const [scriptNotes, setScriptNotes] = useState('');
   const [reviewComments, setReviewComments] = useState('');
-  const [actionLoading, setActionLoading] = useState(false);
+
+  // Stage 3 Shoot Workspace states
+  const [shootDate, setShootDate] = useState('');
+  const [shootStartTime, setShootStartTime] = useState('');
+  const [shootEndTime, setShootEndTime] = useState('');
+  const [studioDetails, setStudioDetails] = useState('');
+  const [cameraGearNotes, setCameraGearNotes] = useState('');
+  const [shootNotes, setShootNotes] = useState('');
+
+  // Crew & Scene modals
+  const [showAddCrewModal, setShowAddCrewModal] = useState(false);
+  const [newCrewUserId, setNewCrewUserId] = useState('');
+  const [newCrewRole, setNewCrewRole] = useState('SECOND_CAMERA');
+
+  const [showAddSceneModal, setShowAddSceneModal] = useState(false);
+  const [newSceneNumber, setNewSceneNumber] = useState(1);
+  const [newSceneTitle, setNewSceneTitle] = useState('');
+  const [newSceneDesc, setNewSceneDesc] = useState('');
+
+  const [activeSceneForShot, setActiveSceneForShot] = useState(null);
+  const [newShotNumber, setNewShotNumber] = useState(1);
+  const [newClipName, setNewClipName] = useState('');
+  const [newDialogueRef, setNewDialogueRef] = useState('');
+  const [newTakeNumber, setNewTakeNumber] = useState(1);
+  const [newShotStatus, setNewShotStatus] = useState('CONFIRMED');
+  const [newShotNotes, setNewShotNotes] = useState('');
+
+  // Stage 4 Footage Handover states
+  const [mediaChipId, setMediaChipId] = useState('');
+  const [footageFolder, setFootageFolder] = useState('');
+  const [footageStorageUrl, setFootageStorageUrl] = useState('');
+  const [handoverNotes, setHandoverNotes] = useState('');
+
+  // Stage 5 & 6 Editing Workspace states
+  const [cutType, setCutType] = useState('FIRST_CUT');
+  const [cutVideoUrl, setCutVideoUrl] = useState('');
+  const [durationSeconds, setDurationSeconds] = useState('');
+  const [editorCutNotes, setEditorCutNotes] = useState('');
+  const [selectedVersionForReview, setSelectedVersionForReview] = useState(null);
+  const [versionReviewDecision, setVersionReviewDecision] = useState('APPROVED');
+  const [versionReviewComments, setVersionReviewComments] = useState('');
+  const [versionReworkNotes, setVersionReworkNotes] = useState('');
+
+  // Stage 7 Thumbnail states
+  const [thumbnailUrl, setThumbnailUrl] = useState('');
+  const [thumbnailNotes, setThumbnailNotes] = useState('');
+  const [selectedThumbnailForReview, setSelectedThumbnailForReview] = useState(null);
+  const [thumbReviewFeedback, setThumbReviewFeedback] = useState('');
+
+  // Stage 8 Publishing states
+  const [pubPlatform, setPubPlatform] = useState('YOUTUBE');
+  const [postUrl, setPostUrl] = useState('');
+  const [postCaption, setPostCaption] = useState('');
+  const [postHashtags, setPostHashtags] = useState('');
+  const [proofScreenshotUrl, setProofScreenshotUrl] = useState('');
+  const [pubNotes, setPubNotes] = useState('');
 
   const fetchProjectDetails = async () => {
     try {
-      const [projRes, timelineRes] = await Promise.all([
+      const [projRes, timelineRes, usersRes] = await Promise.all([
         apiClient.get(`/projects/${id}`),
         apiClient.get(`/projects/${id}/timeline`),
+        apiClient.get('/users?status=ACTIVE'),
       ]);
 
       if (projRes.success && projRes.data) {
         setProjectData(projRes.data);
-        if (projRes.data.script) {
-          setGoogleDocsUrl(projRes.data.script.google_docs_url || '');
-          setScriptVersion(projRes.data.script.script_version || 1);
-          setScriptNotes(projRes.data.script.content_notes || '');
+        const { project, script, shoot, footage_handovers } = projRes.data;
+
+        if (script) {
+          setGoogleDocsUrl(script.google_docs_url || '');
+          setScriptVersion(script.script_version || 1);
+          setScriptNotes(script.content_notes || '');
+        }
+
+        if (shoot) {
+          setShootDate(shoot.actual_shoot_date ? shoot.actual_shoot_date.slice(0, 10) : '');
+          setShootStartTime(shoot.actual_start_time ? shoot.actual_start_time.slice(0, 5) : '');
+          setShootEndTime(shoot.actual_end_time ? shoot.actual_end_time.slice(0, 5) : '');
+          setStudioDetails(shoot.studio_details || '');
+          setCameraGearNotes(shoot.camera_gear_notes || '');
+          setShootNotes(shoot.shoot_notes || '');
+        }
+
+        if (footage_handovers && footage_handovers.length > 0) {
+          const latestHandover = footage_handovers[0];
+          setMediaChipId(latestHandover.storage_media_identifier || '');
+          setFootageFolder(latestHandover.footage_folder_name || '');
+          setFootageStorageUrl(latestHandover.footage_storage_url || '');
+          setHandoverNotes(latestHandover.notes || '');
         }
       }
+
       if (timelineRes.success && timelineRes.data) {
         setTimeline(timelineRes.data);
+      }
+
+      if (usersRes.success && usersRes.data) {
+        setUsersList(usersRes.data);
       }
     } catch (err) {
       toast.error('Failed to load project workspace.');
@@ -106,6 +193,7 @@ export const ProjectDetailPage = () => {
     user?.role_code === 'PRODUCTION_MGR'
   );
 
+  // STAGE 1: SUBMIT DRAFT
   const handleSubmitDraft = async () => {
     const confirmed = window.confirm('Submit this draft for content writing?');
     if (!confirmed) return;
@@ -121,6 +209,7 @@ export const ProjectDetailPage = () => {
     }
   };
 
+  // STAGE 2: SCRIPT ACTIONS
   const handleAcceptScriptWork = async () => {
     setActionLoading(true);
     try {
@@ -200,6 +289,481 @@ export const ProjectDetailPage = () => {
     }
   };
 
+  // STAGE 3: SHOOT ACTIONS
+  const handleAcceptShoot = async () => {
+    setActionLoading(true);
+    try {
+      const res = await apiClient.post(`/shoots/${project.id}/accept`);
+      if (res.success) {
+        toast.success(res.message);
+        fetchProjectDetails();
+      }
+    } catch (err) {
+      toast.error(err.message || 'Failed to claim shoot.');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleStartShoot = async () => {
+    setActionLoading(true);
+    try {
+      const res = await apiClient.post(`/shoots/${project.id}/start`);
+      if (res.success) {
+        toast.success(res.message);
+        fetchProjectDetails();
+      }
+    } catch (err) {
+      toast.error(err.message || 'Failed to start shoot.');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleUpdateShootDetails = async (e) => {
+    e.preventDefault();
+    setActionLoading(true);
+    try {
+      const res = await apiClient.put(`/shoots/${project.id}/details`, {
+        actual_shoot_date: shootDate || null,
+        actual_start_time: shootStartTime || null,
+        actual_end_time: shootEndTime || null,
+        studio_details: studioDetails || null,
+        camera_gear_notes: cameraGearNotes || null,
+        shoot_notes: shootNotes || null,
+      });
+      if (res.success) {
+        toast.success(res.message);
+        fetchProjectDetails();
+      }
+    } catch (err) {
+      toast.error(err.message || 'Failed to update shoot parameters.');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleAddTeamMember = async (e) => {
+    e.preventDefault();
+    if (!newCrewUserId) {
+      toast.error('Select a team member to assign.');
+      return;
+    }
+
+    setActionLoading(true);
+    try {
+      const res = await apiClient.post(`/shoots/${shoot.id}/team`, {
+        user_id: parseInt(newCrewUserId, 10),
+        team_role: newCrewRole,
+      });
+      if (res.success) {
+        toast.success(res.message);
+        setShowAddCrewModal(false);
+        setNewCrewUserId('');
+        fetchProjectDetails();
+      }
+    } catch (err) {
+      toast.error(err.message || 'Failed to add crew member.');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleRemoveTeamMember = async (memberId) => {
+    try {
+      const res = await apiClient.delete(`/shoots/${shoot.id}/team/${memberId}`);
+      if (res.success) {
+        toast.success(res.message);
+        fetchProjectDetails();
+      }
+    } catch (err) {
+      toast.error(err.message || 'Failed to remove crew member.');
+    }
+  };
+
+  const handleAddScene = async (e) => {
+    e.preventDefault();
+    if (!newSceneTitle.trim()) {
+      toast.error('Scene title is required.');
+      return;
+    }
+
+    setActionLoading(true);
+    try {
+      const res = await apiClient.post(`/shoots/${shoot.id}/scenes`, {
+        scene_number: parseInt(newSceneNumber, 10) || 1,
+        title: newSceneTitle.trim(),
+        description: newSceneDesc.trim() || null,
+      });
+      if (res.success) {
+        toast.success(res.message);
+        setShowAddSceneModal(false);
+        setNewSceneTitle('');
+        setNewSceneDesc('');
+        setNewSceneNumber((prev) => prev + 1);
+        fetchProjectDetails();
+      }
+    } catch (err) {
+      toast.error(err.message || 'Failed to add scene.');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleLogShot = async (e) => {
+    e.preventDefault();
+    if (!newClipName.trim() || !activeSceneForShot) {
+      toast.error('Clip filename is required.');
+      return;
+    }
+
+    setActionLoading(true);
+    try {
+      const res = await apiClient.post(`/shoots/scenes/${activeSceneForShot.id}/shots`, {
+        shot_number: parseInt(newShotNumber, 10) || 1,
+        clip_file_name: newClipName.trim(),
+        dialogue_reference: newDialogueRef.trim() || null,
+        take_number: parseInt(newTakeNumber, 10) || 1,
+        status: newShotStatus,
+        notes: newShotNotes.trim() || null,
+      });
+      if (res.success) {
+        toast.success(res.message);
+        setActiveSceneForShot(null);
+        setNewClipName('');
+        setNewDialogueRef('');
+        setNewShotNotes('');
+        setNewShotNumber((prev) => prev + 1);
+        fetchProjectDetails();
+      }
+    } catch (err) {
+      toast.error(err.message || 'Failed to log shot.');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleToggleShotStatus = async (shotId, currentStatus) => {
+    const cycle = {
+      RECORDED: 'CONFIRMED',
+      CONFIRMED: 'REJECTED',
+      REJECTED: 'RETAKE_REQUIRED',
+      RETAKE_REQUIRED: 'RECORDED',
+      UNUSABLE: 'CONFIRMED',
+    };
+    const nextStatus = cycle[currentStatus] || 'CONFIRMED';
+
+    try {
+      const res = await apiClient.patch(`/shoots/shots/${shotId}/status`, {
+        status: nextStatus,
+      });
+      if (res.success) {
+        toast.success(res.message);
+        fetchProjectDetails();
+      }
+    } catch (err) {
+      toast.error(err.message || 'Failed to update shot status.');
+    }
+  };
+
+  const handleDeleteShot = async (shotId) => {
+    if (!window.confirm('Delete this shot entry?')) return;
+    try {
+      const res = await apiClient.delete(`/shoots/shots/${shotId}`);
+      if (res.success) {
+        toast.success(res.message);
+        fetchProjectDetails();
+      }
+    } catch (err) {
+      toast.error(err.message || 'Failed to delete shot.');
+    }
+  };
+
+  const handleCompleteShoot = async () => {
+    if (!window.confirm('Mark shoot as completed and advance to Stage 4: Footage Handover?')) return;
+    setActionLoading(true);
+    try {
+      const res = await apiClient.post(`/shoots/${project.id}/complete`);
+      if (res.success) {
+        toast.success(res.message);
+        fetchProjectDetails();
+        setActiveTab('handover');
+      }
+    } catch (err) {
+      toast.error(err.message || 'Failed to complete shoot.');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // STAGE 4: FOOTAGE HANDOVER ACTIONS
+  const handleRecordHandover = async (e) => {
+    e.preventDefault();
+    if (!mediaChipId.trim() || !footageFolder.trim()) {
+      toast.error('Media chip identifier and folder name are required.');
+      return;
+    }
+
+    setActionLoading(true);
+    try {
+      const res = await apiClient.post(`/footage/${project.id}/handover`, {
+        storage_media_identifier: mediaChipId.trim(),
+        footage_folder_name: footageFolder.trim(),
+        footage_storage_url: footageStorageUrl.trim() || null,
+        notes: handoverNotes.trim() || null,
+      });
+      if (res.success) {
+        toast.success(res.message);
+        fetchProjectDetails();
+      }
+    } catch (err) {
+      toast.error(err.message || 'Failed to record footage handover.');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleConfirmReceipt = async () => {
+    setActionLoading(true);
+    try {
+      const res = await apiClient.post(`/footage/${project.id}/receive`);
+      if (res.success) {
+        toast.success(res.message);
+        fetchProjectDetails();
+      }
+    } catch (err) {
+      toast.error(err.message || 'Failed to confirm receipt.');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleConfirmCopied = async () => {
+    setActionLoading(true);
+    try {
+      const res = await apiClient.post(`/footage/${project.id}/copied`);
+      if (res.success) {
+        toast.success(res.message);
+        fetchProjectDetails();
+      }
+    } catch (err) {
+      toast.error(err.message || 'Failed to mark footage copied.');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleMarkReadyForEditing = async () => {
+    setActionLoading(true);
+    try {
+      const res = await apiClient.post(`/footage/${project.id}/ready`);
+      if (res.success) {
+        toast.success(res.message);
+        fetchProjectDetails();
+        setActiveTab('editing');
+      }
+    } catch (err) {
+      toast.error(err.message || 'Failed to advance to video editing.');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // STAGE 5 & 6: EDITING ACTIONS
+  const handleAcceptEditing = async () => {
+    setActionLoading(true);
+    try {
+      const res = await apiClient.post(`/editing/${project.id}/accept`);
+      if (res.success) {
+        toast.success(res.message);
+        fetchProjectDetails();
+      }
+    } catch (err) {
+      toast.error(err.message || 'Failed to claim editing assignment.');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleStartEditing = async () => {
+    setActionLoading(true);
+    try {
+      const res = await apiClient.post(`/editing/${project.id}/start`);
+      if (res.success) {
+        toast.success(res.message);
+        fetchProjectDetails();
+      }
+    } catch (err) {
+      toast.error(err.message || 'Failed to start editing.');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleSubmitCutVersion = async (e) => {
+    e.preventDefault();
+    if (!cutVideoUrl.trim()) {
+      toast.error('Video review URL is required.');
+      return;
+    }
+
+    setActionLoading(true);
+    try {
+      const res = await apiClient.post(`/editing/${project.id}/versions`, {
+        cut_type: cutType,
+        cut_video_url: cutVideoUrl.trim(),
+        duration_seconds: durationSeconds ? parseInt(durationSeconds, 10) : null,
+        editor_notes: editorCutNotes.trim() || null,
+      });
+      if (res.success) {
+        toast.success(res.message);
+        setCutVideoUrl('');
+        setEditorCutNotes('');
+        setDurationSeconds('');
+        fetchProjectDetails();
+      }
+    } catch (err) {
+      toast.error(err.message || 'Failed to submit cut version.');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleReviewCutDecision = async (versionId) => {
+    if (!versionReviewComments.trim()) {
+      toast.error('Review feedback is required before recording decision.');
+      return;
+    }
+
+    setActionLoading(true);
+    try {
+      const res = await apiClient.post(`/editing/versions/${versionId}/review`, {
+        decision: versionReviewDecision,
+        comments: versionReviewComments.trim(),
+        rework_notes: versionReworkNotes.trim() || null,
+      });
+      if (res.success) {
+        toast.success(res.message);
+        setSelectedVersionForReview(null);
+        setVersionReviewComments('');
+        setVersionReworkNotes('');
+        fetchProjectDetails();
+        if (versionReviewDecision === 'APPROVED' && cutType === 'FINAL_CUT') {
+          setActiveTab('thumbnail');
+        }
+      }
+    } catch (err) {
+      toast.error(err.message || 'Failed to record cut decision.');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // STAGE 7: THUMBNAIL ACTIONS
+  const handleSubmitThumbnail = async (e) => {
+    e.preventDefault();
+    if (!thumbnailUrl.trim()) {
+      toast.error('Valid thumbnail URL is required.');
+      return;
+    }
+
+    setActionLoading(true);
+    try {
+      const res = await apiClient.post(`/thumbnails/${project.id}`, {
+        thumbnail_url: thumbnailUrl.trim(),
+        feedback_notes: thumbnailNotes.trim() || null,
+      });
+      if (res.success) {
+        toast.success(res.message);
+        setThumbnailUrl('');
+        setThumbnailNotes('');
+        fetchProjectDetails();
+      }
+    } catch (err) {
+      toast.error(err.message || 'Failed to submit thumbnail.');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleReviewThumbnail = async (thumbnailId, decision) => {
+    if (!thumbReviewFeedback.trim()) {
+      toast.error('Review feedback is required.');
+      return;
+    }
+
+    setActionLoading(true);
+    try {
+      const res = await apiClient.post(`/thumbnails/${thumbnailId}/review`, {
+        decision,
+        feedback_notes: thumbReviewFeedback.trim(),
+      });
+      if (res.success) {
+        toast.success(res.message);
+        setSelectedThumbnailForReview(null);
+        setThumbReviewFeedback('');
+        fetchProjectDetails();
+        if (decision === 'APPROVED') {
+          setActiveTab('publishing');
+        }
+      }
+    } catch (err) {
+      toast.error(err.message || 'Failed to review thumbnail.');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // STAGE 8: PUBLISHING ACTIONS
+  const handlePublishPlatform = async (e) => {
+    e.preventDefault();
+    if (!postUrl.trim()) {
+      toast.error('Valid live post URL is required.');
+      return;
+    }
+
+    setActionLoading(true);
+    try {
+      const res = await apiClient.post(`/publishing/projects/${project.id}/platform`, {
+        platform: pubPlatform,
+        post_url: postUrl.trim(),
+        caption: postCaption.trim() || null,
+        hashtags: postHashtags.trim() || null,
+        proof_screenshot_url: proofScreenshotUrl.trim() || null,
+        notes: pubNotes.trim() || null,
+      });
+      if (res.success) {
+        toast.success(res.message);
+        setPostUrl('');
+        setPostCaption('');
+        setPostHashtags('');
+        setProofScreenshotUrl('');
+        setPubNotes('');
+        fetchProjectDetails();
+      }
+    } catch (err) {
+      toast.error(err.message || 'Failed to record platform publish.');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleCompleteProject = async () => {
+    if (!window.confirm('Mark this video project as fully published and completed?')) return;
+    setActionLoading(true);
+    try {
+      const res = await apiClient.post(`/publishing/projects/${project.id}/complete`);
+      if (res.success) {
+        toast.success(res.message);
+        fetchProjectDetails();
+      }
+    } catch (err) {
+      toast.error(err.message || 'Failed to complete project.');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const STAGES = [
     { key: 'DRAFT_PLANNING', label: '1. Draft' },
     { key: 'CONTENT_WRITING', label: '2. Script' },
@@ -215,7 +779,7 @@ export const ProjectDetailPage = () => {
 
   return (
     <div className="space-y-6">
-      {/* Back Button & Top Bar */}
+      {/* Top Bar */}
       <div className="flex items-center justify-between">
         <button
           onClick={() => navigate('/drafts')}
@@ -231,6 +795,15 @@ export const ProjectDetailPage = () => {
               className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all"
             >
               <Send className="w-3.5 h-3.5" /> Submit for Scripting
+            </button>
+          )}
+
+          {project.current_stage === 'PUBLISHING' && (isManager || isAdmin) && (
+            <button
+              onClick={handleCompleteProject}
+              className="px-3.5 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all"
+            >
+              <Sparkles className="w-3.5 h-3.5" /> Mark Project Live & Complete
             </button>
           )}
         </div>
@@ -627,15 +1200,52 @@ export const ProjectDetailPage = () => {
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-sm font-bold text-slate-900 mb-1">Stage 3: Cinematography & Shot Logging</h3>
-                <p className="text-xs text-slate-500">Camera crew roster, shoot schedule, and scene-level clip logs.</p>
+                <p className="text-xs text-slate-500">Camera crew roster, shoot parameters, and scene-level clip logs.</p>
               </div>
               {shoot && <StatusBadge status={shoot.status} />}
             </div>
 
             {shoot ? (
-              <div className="space-y-4">
-                {/* Crew Details */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="space-y-6">
+                {/* Shoot Claim / Status Bar */}
+                {shoot.status === 'AVAILABLE' && (
+                  <div className="p-6 bg-blue-50/60 rounded-2xl border border-blue-200 text-center space-y-3">
+                    <Video className="w-10 h-10 text-blue-600 mx-auto" />
+                    <h4 className="text-sm font-bold text-slate-900">Shoot Ready for Cameraman Claim</h4>
+                    <p className="text-xs text-slate-600 max-w-md mx-auto">
+                      Script has been approved. The Lead Cinematographer can now accept this video production shoot.
+                    </p>
+                    <button
+                      onClick={handleAcceptShoot}
+                      disabled={actionLoading}
+                      className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-sm shadow-blue-500/20 disabled:opacity-50"
+                    >
+                      {actionLoading ? 'Claiming...' : 'Claim Lead Cinematographer Role'}
+                    </button>
+                  </div>
+                )}
+
+                {shoot.status === 'ACCEPTED' && (
+                  <div className="p-4 bg-amber-50 rounded-2xl border border-amber-200 flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-2">
+                      <Clock className="w-5 h-5 text-amber-600 shrink-0" />
+                      <div>
+                        <p className="font-bold text-amber-900">Lead Cinematographer Assigned: {shoot.lead_cameraman_name}</p>
+                        <p className="text-amber-700">Gear up and click "Start Shoot" when cameras roll.</p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={handleStartShoot}
+                      disabled={actionLoading}
+                      className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl font-bold flex items-center gap-1.5 shadow-sm"
+                    >
+                      <Play className="w-3.5 h-3.5" /> Start Active Shoot
+                    </button>
+                  </div>
+                )}
+
+                {/* Shoot Header & Parameter Cards */}
+                <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
                   <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs">
                     <span className="text-[10px] uppercase font-bold text-slate-400 block">Lead Cinematographer</span>
                     <span className="font-bold text-slate-800">{shoot.lead_cameraman_name || 'Unassigned'}</span>
@@ -645,53 +1255,230 @@ export const ProjectDetailPage = () => {
                     <span className="font-bold text-slate-800">{shoot.confirmed_anchor_name || project.anchor_name || 'Unassigned'}</span>
                   </div>
                   <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs">
-                    <span className="text-[10px] uppercase font-bold text-slate-400 block">Actual Shoot Date</span>
+                    <span className="text-[10px] uppercase font-bold text-slate-400 block">Shoot Date</span>
                     <span className="font-bold text-slate-800">{shoot.actual_shoot_date ? shoot.actual_shoot_date.slice(0, 10) : 'Pending'}</span>
+                  </div>
+                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs">
+                    <span className="text-[10px] uppercase font-bold text-slate-400 block">Studio / Gear</span>
+                    <span className="font-bold text-slate-800 truncate block">{shoot.studio_details || shoot.camera_gear_notes || 'VCube Studio Main'}</span>
                   </div>
                 </div>
 
-                {/* Scenes and Shots List */}
-                <div className="space-y-3 pt-2">
-                  <h4 className="text-xs font-bold text-slate-900">Recorded Scenes & Shots</h4>
+                {/* Crew Roster Section */}
+                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider">Production Crew Roster</h4>
+                      <p className="text-[11px] text-slate-500">Multiple employees working together on this video shoot.</p>
+                    </div>
+                    {(isManager || shoot.lead_cinematographer_id === user?.id) && (
+                      <button
+                        onClick={() => setShowAddCrewModal(true)}
+                        className="px-3 py-1.5 bg-white border border-slate-200 text-slate-700 hover:bg-slate-100 rounded-xl text-xs font-bold flex items-center gap-1 shadow-2xs"
+                      >
+                        <Plus className="w-3.5 h-3.5" /> Assign Crew Member
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                    {shoot.teamMembers?.map((member) => (
+                      <div
+                        key={member.id}
+                        className="flex items-center justify-between p-2.5 bg-white rounded-xl border border-slate-200/80 text-xs"
+                      >
+                        <div className="space-y-0.5">
+                          <span className="font-bold text-slate-800">{member.name}</span>
+                          <span className="text-[10px] text-blue-600 font-bold block">{member.team_role.replace(/_/g, ' ')}</span>
+                        </div>
+                        {(isManager || shoot.lead_cinematographer_id === user?.id) && member.user_id !== shoot.lead_cinematographer_id && (
+                          <button
+                            onClick={() => handleRemoveTeamMember(member.user_id)}
+                            className="p-1 text-slate-400 hover:text-rose-600 rounded-md transition-colors"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Shoot Parameters Form */}
+                {(isManager || shoot.lead_cinematographer_id === user?.id) && (
+                  <form onSubmit={handleUpdateShootDetails} className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
+                    <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider">Shoot Logistics & Camera Notes</h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <div>
+                        <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1">Shoot Date</label>
+                        <input
+                          type="date"
+                          value={shootDate}
+                          onChange={(e) => setShootDate(e.target.value)}
+                          className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1">Start Time</label>
+                        <input
+                          type="time"
+                          value={shootStartTime}
+                          onChange={(e) => setShootStartTime(e.target.value)}
+                          className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1">End Time</label>
+                        <input
+                          type="time"
+                          value={shootEndTime}
+                          onChange={(e) => setShootEndTime(e.target.value)}
+                          className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium"
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1">Studio Details / Location</label>
+                        <input
+                          type="text"
+                          value={studioDetails}
+                          onChange={(e) => setStudioDetails(e.target.value)}
+                          placeholder="e.g. Studio A, Green Screen Setup"
+                          className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1">Camera & Gear Notes</label>
+                        <input
+                          type="text"
+                          value={cameraGearNotes}
+                          onChange={(e) => setCameraGearNotes(e.target.value)}
+                          placeholder="e.g. Sony FX3 + 24-70mm GM II, Wireless Rode Mic"
+                          className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex justify-end pt-1">
+                      <button
+                        type="submit"
+                        disabled={actionLoading}
+                        className="px-3.5 py-1.5 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-800 disabled:opacity-50"
+                      >
+                        Save Logistics
+                      </button>
+                    </div>
+                  </form>
+                )}
+
+                {/* SCENES & SHOT LOGGING CONSOLE */}
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider">Chronological Scene & Shot Logger</h4>
+                      <p className="text-[11px] text-slate-500">Record clips, dialogue cues, take numbers, and usability status.</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {(isManager || shoot.lead_cinematographer_id === user?.id) && (
+                        <>
+                          <button
+                            onClick={() => setShowAddSceneModal(true)}
+                            className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center gap-1 shadow-sm"
+                          >
+                            <Plus className="w-3.5 h-3.5" /> Add Scene
+                          </button>
+
+                          {shoot.status !== 'SHOOT_COMPLETED' && (
+                            <button
+                              onClick={handleCompleteShoot}
+                              disabled={actionLoading}
+                              className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm"
+                            >
+                              <CheckCircle2 className="w-3.5 h-3.5" /> Complete Shoot & Handover
+                            </button>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  </div>
+
                   {!shoot.scenes || shoot.scenes.length === 0 ? (
-                    <div className="p-6 bg-slate-50 rounded-2xl border border-slate-200 text-center text-xs text-slate-500">
-                      No scenes or shots logged yet. Cinematographers will log takes chronologically during production.
+                    <div className="p-8 bg-slate-50 rounded-2xl border border-slate-200 text-center text-xs text-slate-500 space-y-2">
+                      <Video className="w-8 h-8 text-slate-300 mx-auto" />
+                      <p className="font-bold text-slate-700">No Scenes Added Yet</p>
+                      <p>Click "Add Scene" above to structure the shoot and start logging camera takes.</p>
                     </div>
                   ) : (
                     shoot.scenes.map((scene) => (
-                      <div key={scene.id} className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-2">
+                      <div key={scene.id} className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
                         <div className="flex items-center justify-between">
-                          <h5 className="text-xs font-bold text-slate-900">
-                            Scene {scene.scene_number}: {scene.title}
-                          </h5>
-                          <span className="text-[10px] text-slate-500">{scene.shots?.length || 0} shots</span>
+                          <div>
+                            <h5 className="text-xs font-bold text-slate-900">
+                              Scene {scene.scene_number}: {scene.title}
+                            </h5>
+                            {scene.description && <p className="text-[11px] text-slate-500">{scene.description}</p>}
+                          </div>
+                          <button
+                            onClick={() => {
+                              setActiveSceneForShot(scene);
+                              setNewShotNumber((scene.shots?.length || 0) + 1);
+                              setNewClipName(`CLIP_${String((scene.shots?.length || 0) + 1).padStart(3, '0')}.MOV`);
+                            }}
+                            className="px-2.5 py-1 bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 rounded-lg text-xs font-bold flex items-center gap-1"
+                          >
+                            <Plus className="w-3 h-3 text-blue-600" /> Log Shot
+                          </button>
                         </div>
-                        <div className="space-y-1">
-                          {scene.shots?.map((sh) => (
-                            <div
-                              key={sh.id}
-                              className="flex items-center justify-between px-3 py-1.5 bg-white rounded-lg border border-slate-200/70 text-xs"
-                            >
-                              <div className="flex items-center gap-2">
-                                <span className="font-mono font-bold text-blue-600">Shot {sh.shot_number}:</span>
-                                <span className="font-bold text-slate-800">{sh.clip_file_name}</span>
-                                {sh.dialogue_reference && (
-                                  <span className="text-slate-500 italic">"{sh.dialogue_reference}"</span>
-                                )}
-                              </div>
-                              <span
-                                className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
-                                  sh.status === 'CONFIRMED'
-                                    ? 'bg-emerald-100 text-emerald-800'
-                                    : sh.status === 'REJECTED'
-                                    ? 'bg-rose-100 text-rose-800'
-                                    : 'bg-slate-100 text-slate-700'
-                                }`}
+
+                        {/* Shots table for this scene */}
+                        <div className="space-y-1.5">
+                          {scene.shots && scene.shots.length > 0 ? (
+                            scene.shots.map((sh) => (
+                              <div
+                                key={sh.id}
+                                className="flex flex-col sm:flex-row sm:items-center justify-between p-2.5 bg-white rounded-xl border border-slate-200/80 text-xs gap-2"
                               >
-                                {sh.status}
-                              </span>
-                            </div>
-                          ))}
+                                <div className="flex items-center gap-3">
+                                  <span className="font-mono font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded text-[11px]">
+                                    Shot {sh.shot_number} (Take {sh.take_number})
+                                  </span>
+                                  <span className="font-mono font-bold text-slate-800">{sh.clip_file_name}</span>
+                                  {sh.dialogue_reference && (
+                                    <span className="text-slate-500 italic truncate max-w-xs">
+                                      "{sh.dialogue_reference}"
+                                    </span>
+                                  )}
+                                </div>
+
+                                <div className="flex items-center gap-2">
+                                  <button
+                                    onClick={() => handleToggleShotStatus(sh.id, sh.status)}
+                                    title="Click to cycle shot status"
+                                    className={`text-[10px] font-bold px-2.5 py-1 rounded-md transition-all cursor-pointer ${
+                                      sh.status === 'CONFIRMED'
+                                        ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200'
+                                        : sh.status === 'REJECTED'
+                                        ? 'bg-rose-100 text-rose-800 hover:bg-rose-200'
+                                        : sh.status === 'RETAKE_REQUIRED'
+                                        ? 'bg-amber-100 text-amber-800 hover:bg-amber-200'
+                                        : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                                    }`}
+                                  >
+                                    {sh.status} ↺
+                                  </button>
+
+                                  <button
+                                    onClick={() => handleDeleteShot(sh.id)}
+                                    className="p-1 text-slate-400 hover:text-rose-600 transition-colors"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              </div>
+                            ))
+                          ) : (
+                            <p className="text-[11px] text-slate-400 italic p-2">No shots logged for this scene yet.</p>
+                          )}
                         </div>
                       </div>
                     ))
@@ -700,7 +1487,7 @@ export const ProjectDetailPage = () => {
               </div>
             ) : (
               <div className="text-center py-8 text-xs text-slate-500">
-                Cinematography workspace not initialized.
+                Cinematography workspace unlocks after script approval.
               </div>
             )}
           </div>
@@ -709,49 +1496,171 @@ export const ProjectDetailPage = () => {
         {/* TAB 4: FOOTAGE HANDOVER */}
         {activeTab === 'handover' && (
           <div className="space-y-6">
-            <div>
-              <h3 className="text-sm font-bold text-slate-900 mb-1">Stage 4: Physical Footage Handover</h3>
-              <p className="text-xs text-slate-500">Storage media chip identifier, folder name, and editor confirmation.</p>
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-bold text-slate-900 mb-1">Stage 4: Physical Footage Handover Protocol</h3>
+                <p className="text-xs text-slate-500">Storage media chip identifier, folder name, and editor dual-party verification.</p>
+              </div>
+              {footage_handovers && footage_handovers.length > 0 && (
+                <StatusBadge status={footage_handovers[0].status} />
+              )}
             </div>
 
-            {!footage_handovers || footage_handovers.length === 0 ? (
-              <div className="p-8 bg-slate-50 rounded-2xl border border-slate-200 text-center text-xs text-slate-500 space-y-2">
-                <HardDrive className="w-8 h-8 text-slate-300 mx-auto" />
-                <p className="font-bold text-slate-700">Awaiting Shoot Completion</p>
-                <p>After shooting finishes, the camera crew logs the physical chip identifier and hands it over to editing.</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {footage_handovers.map((fh) => (
-                  <div key={fh.id} className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="font-mono text-xs font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-md">
-                        {fh.storage_media_identifier}
-                      </span>
-                      <StatusBadge status={fh.status} />
+            {/* Handover Flow Interface */}
+            <div className="space-y-4">
+              {/* Form to log / edit handover media */}
+              <form onSubmit={handleRecordHandover} className="p-5 bg-slate-50 rounded-2xl border border-slate-200 space-y-4">
+                <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                  Physical Storage Media & Folder Handover Log
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-bold uppercase text-slate-600 mb-1">
+                      Storage Chip / Card Identifier *
+                    </label>
+                    <input
+                      type="text"
+                      value={mediaChipId}
+                      onChange={(e) => setMediaChipId(e.target.value)}
+                      placeholder="e.g. SD_CARD_A1, SSD_SANDISK_02, DRIVE_B"
+                      required
+                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold uppercase text-slate-600 mb-1">
+                      Raw Footage Folder Name *
+                    </label>
+                    <input
+                      type="text"
+                      value={footageFolder}
+                      onChange={(e) => setFootageFolder(e.target.value)}
+                      placeholder="e.g. RAW_20261105_AGENCY_K"
+                      required
+                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-bold uppercase text-slate-600 mb-1">
+                      Storage URL / Google Drive / NAS Link (Optional)
+                    </label>
+                    <input
+                      type="text"
+                      value={footageStorageUrl}
+                      onChange={(e) => setFootageStorageUrl(e.target.value)}
+                      placeholder="https://drive.google.com/drive/folders/..."
+                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold uppercase text-slate-600 mb-1">
+                      Handover Notes & Observations
+                    </label>
+                    <input
+                      type="text"
+                      value={handoverNotes}
+                      onChange={(e) => setHandoverNotes(e.target.value)}
+                      placeholder="e.g. 15GB total, 4K 60fps, includes B-roll folder"
+                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex justify-between items-center pt-1">
+                  <button
+                    type="submit"
+                    disabled={actionLoading}
+                    className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition-colors disabled:opacity-50"
+                  >
+                    {actionLoading ? 'Saving...' : 'Record Physical Media Handover'}
+                  </button>
+                </div>
+              </form>
+
+              {/* Dual-Party Verification Stepper */}
+              {footage_handovers && footage_handovers.length > 0 && (
+                <div className="p-5 bg-white rounded-2xl border border-slate-200/80 shadow-sm space-y-4">
+                  <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                    Editor Dual-Party Verification Protocol
+                  </h4>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    {/* Step 1: Confirm Receipt */}
+                    <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="font-bold text-slate-800">1. Receive Media</span>
+                        {footage_handovers[0].received_at ? (
+                          <Check className="w-4 h-4 text-emerald-600" />
+                        ) : (
+                          <Clock className="w-4 h-4 text-amber-500" />
+                        )}
+                      </div>
+                      <p className="text-[11px] text-slate-500">
+                        {footage_handovers[0].received_by_name
+                          ? `Received by ${footage_handovers[0].received_by_name}`
+                          : 'Pending editor physical pickup'}
+                      </p>
+                      {!footage_handovers[0].received_at && (
+                        <button
+                          onClick={handleConfirmReceipt}
+                          disabled={actionLoading}
+                          className="w-full py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold shadow-2xs"
+                        >
+                          Confirm Receipt
+                        </button>
+                      )}
                     </div>
-                    <div className="grid grid-cols-2 gap-2 text-xs text-slate-600">
-                      <div>
-                        <span className="text-[10px] uppercase text-slate-400 block">Folder Name</span>
-                        <span className="font-bold text-slate-800">{fh.footage_folder_name}</span>
+
+                    {/* Step 2: Backup / Copy */}
+                    <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="font-bold text-slate-800">2. Copy to Workstation</span>
+                        {footage_handovers[0].status === 'FOOTAGE_COPIED' || footage_handovers[0].status === 'READY_FOR_EDITING' ? (
+                          <Check className="w-4 h-4 text-emerald-600" />
+                        ) : (
+                          <Clock className="w-4 h-4 text-amber-500" />
+                        )}
                       </div>
-                      <div>
-                        <span className="text-[10px] uppercase text-slate-400 block">Handed Over By</span>
-                        <span className="font-bold text-slate-800">{fh.handed_over_by_name}</span>
+                      <p className="text-[11px] text-slate-500">Copy raw clips to local high-speed drive / editing server.</p>
+                      {footage_handovers[0].status === 'RECEIVED_BY_EDITOR' && (
+                        <button
+                          onClick={handleConfirmCopied}
+                          disabled={actionLoading}
+                          className="w-full py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs font-bold shadow-2xs"
+                        >
+                          Mark Footage Copied
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Step 3: Advance to Editing */}
+                    <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="font-bold text-slate-800">3. Ready for Editing</span>
+                        {footage_handovers[0].status === 'READY_FOR_EDITING' ? (
+                          <Check className="w-4 h-4 text-emerald-600" />
+                        ) : (
+                          <Clock className="w-4 h-4 text-amber-500" />
+                        )}
                       </div>
-                      <div>
-                        <span className="text-[10px] uppercase text-slate-400 block">Received By</span>
-                        <span className="font-bold text-slate-800">{fh.received_by_name || 'Pending Confirmation'}</span>
-                      </div>
-                      <div>
-                        <span className="text-[10px] uppercase text-slate-400 block">Storage URL / Path</span>
-                        <span className="font-mono text-slate-700 truncate">{fh.footage_storage_url || 'Physical Media'}</span>
-                      </div>
+                      <p className="text-[11px] text-slate-500">Unlocks Stage 5 and notifies editing team.</p>
+                      {(footage_handovers[0].status === 'FOOTAGE_COPIED' || footage_handovers[0].status === 'RECEIVED_BY_EDITOR') && (
+                        <button
+                          onClick={handleMarkReadyForEditing}
+                          disabled={actionLoading}
+                          className="w-full py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold shadow-2xs"
+                        >
+                          Advance to Editing
+                        </button>
+                      )}
                     </div>
                   </div>
-                ))}
-              </div>
-            )}
+                </div>
+              )}
+            </div>
           </div>
         )}
 
@@ -760,20 +1669,148 @@ export const ProjectDetailPage = () => {
           <div className="space-y-6">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-sm font-bold text-slate-900 mb-1">Stage 5: Video Editing & Versioning</h3>
-                <p className="text-xs text-slate-500">First Cut, Rework, and Final Cut review links.</p>
+                <h3 className="text-sm font-bold text-slate-900 mb-1">Stage 5: Video Editing Workspace & Versioning</h3>
+                <p className="text-xs text-slate-500">Submit First Cut, Rough Cut, and Final Cut review URLs.</p>
               </div>
               {editing && <StatusBadge status={editing.status} />}
             </div>
 
-            {editing && editing.versions && editing.versions.length > 0 ? (
-              <div className="space-y-3">
-                {editing.versions.map((ver) => (
-                  <div key={ver.id} className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-2">
+            {/* Editing Claim / Start Banner */}
+            {editing && editing.status === 'AVAILABLE' && (
+              <div className="p-6 bg-blue-50/60 rounded-2xl border border-blue-200 text-center space-y-3">
+                <Scissors className="w-10 h-10 text-blue-600 mx-auto" />
+                <h4 className="text-sm font-bold text-slate-900">Video Ready for Editing Assignment</h4>
+                <p className="text-xs text-slate-600 max-w-md mx-auto">
+                  Footage handover verified. Claim this project to edit raw takes into polished cuts.
+                </p>
+                <button
+                  onClick={handleAcceptEditing}
+                  disabled={actionLoading}
+                  className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-sm shadow-blue-500/20 disabled:opacity-50"
+                >
+                  {actionLoading ? 'Claiming...' : 'Claim Video Editing Work'}
+                </button>
+              </div>
+            )}
+
+            {editing && editing.status === 'ACCEPTED' && (
+              <div className="p-4 bg-amber-50 rounded-2xl border border-amber-200 flex items-center justify-between text-xs">
+                <div className="flex items-center gap-2">
+                  <Scissors className="w-5 h-5 text-amber-600 shrink-0" />
+                  <div>
+                    <p className="font-bold text-amber-900">Assigned Editor: {editing.editor_name}</p>
+                    <p className="text-amber-700">Click below when timeline assembly begins.</p>
+                  </div>
+                </div>
+                <button
+                  onClick={handleStartEditing}
+                  disabled={actionLoading}
+                  className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl font-bold flex items-center gap-1.5 shadow-sm"
+                >
+                  <Play className="w-3.5 h-3.5" /> Start Editing
+                </button>
+              </div>
+            )}
+
+            {/* Submit Version Cut Form */}
+            {editing && (editing.status === 'EDITING_IN_PROGRESS' || editing.status === 'CHANGES_REQUESTED' || editing.status === 'UNDER_REVIEW') && (
+              <form onSubmit={handleSubmitCutVersion} className="p-5 bg-slate-50 rounded-2xl border border-slate-200 space-y-4">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                    Submit New Video Cut for Manager Review (Stage 6)
+                  </h4>
+                  <span className="text-[11px] text-slate-500 font-bold">
+                    Editor: {editing.editor_name || user?.name}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-bold uppercase text-slate-600 mb-1">
+                      Cut Type *
+                    </label>
+                    <select
+                      value={cutType}
+                      onChange={(e) => setCutType(e.target.value)}
+                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold"
+                    >
+                      <option value="FIRST_CUT">First Cut</option>
+                      <option value="ROUGH_CUT">Rough Cut</option>
+                      <option value="REWORK_CUT">Rework Cut</option>
+                      <option value="FINAL_CUT">Final Cut (Sign-off Ready)</option>
+                    </select>
+                  </div>
+
+                  <div className="sm:col-span-2">
+                    <label className="block text-[11px] font-bold uppercase text-slate-600 mb-1">
+                      Video Review URL (Drive, Frame.io, YouTube Unlisted) *
+                    </label>
+                    <input
+                      type="url"
+                      value={cutVideoUrl}
+                      onChange={(e) => setCutVideoUrl(e.target.value)}
+                      placeholder="https://drive.google.com/file/d/... or https://frame.io/..."
+                      required
+                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold uppercase text-slate-600 mb-1">
+                      Duration (Secs)
+                    </label>
+                    <input
+                      type="number"
+                      value={durationSeconds}
+                      onChange={(e) => setDurationSeconds(e.target.value)}
+                      placeholder="e.g. 180"
+                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold uppercase text-slate-600 mb-1">
+                    Editor Notes / Changelog
+                  </label>
+                  <textarea
+                    value={editorCutNotes}
+                    onChange={(e) => setEditorCutNotes(e.target.value)}
+                    rows={2}
+                    placeholder="Summarize changes made, sound design details, or color grading notes..."
+                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium"
+                  />
+                </div>
+
+                <div className="flex justify-end pt-1">
+                  <button
+                    type="submit"
+                    disabled={actionLoading}
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm disabled:opacity-50"
+                  >
+                    <Send className="w-3.5 h-3.5" /> Submit Cut for Review
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {/* List of Submitted Versions & Review Gates */}
+            <div className="space-y-3">
+              <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                Video Cut Version History & Review Decisions
+              </h4>
+
+              {!editing || !editing.versions || editing.versions.length === 0 ? (
+                <div className="p-8 bg-slate-50 rounded-2xl border border-slate-200 text-center text-xs text-slate-500">
+                  No video cut versions uploaded yet.
+                </div>
+              ) : (
+                editing.versions.map((ver) => (
+                  <div key={ver.id} className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <span className="font-bold text-xs text-blue-700 bg-blue-100 px-2 py-0.5 rounded-md">
-                          v{ver.version_number} ({ver.cut_type})
+                        <span className="font-bold text-xs text-blue-700 bg-blue-100 px-2.5 py-1 rounded-md">
+                          v{ver.version_number}: {ver.cut_type}
                         </span>
                         <span className="text-[11px] text-slate-500">
                           Submitted on {new Date(ver.submitted_at).toLocaleDateString()}
@@ -788,25 +1825,75 @@ export const ProjectDetailPage = () => {
                         <span>Open Cut Link</span> <ExternalLink className="w-3.5 h-3.5" />
                       </a>
                     </div>
-                    {ver.review_decision && (
-                      <div className="p-2.5 bg-white rounded-xl border border-slate-200 text-xs space-y-1">
-                        <span className="font-bold text-slate-700">Reviewer ({ver.reviewer_name}): </span>
-                        <span className={ver.review_decision === 'APPROVED' ? 'text-emerald-700 font-bold' : 'text-rose-700 font-bold'}>
-                          {ver.review_decision}
-                        </span>
+
+                    {ver.editor_notes && (
+                      <p className="text-xs text-slate-600 bg-white p-2.5 rounded-xl border border-slate-200/80">
+                        <strong className="text-slate-800">Editor Notes: </strong> {ver.editor_notes}
+                      </p>
+                    )}
+
+                    {ver.review_decision ? (
+                      <div className="p-3 bg-white rounded-xl border border-slate-200 text-xs space-y-1">
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold text-slate-800">Review Sign-Off by {ver.reviewer_name}:</span>
+                          <span
+                            className={`font-bold px-2 py-0.5 rounded text-[10px] ${
+                              ver.review_decision === 'APPROVED'
+                                ? 'bg-emerald-100 text-emerald-800'
+                                : 'bg-rose-100 text-rose-800'
+                            }`}
+                          >
+                            {ver.review_decision}
+                          </span>
+                        </div>
                         <p className="text-slate-600">{ver.review_comments}</p>
                       </div>
+                    ) : (
+                      /* Review Gate Form for Managers */
+                      (isManager || isAdmin) && (
+                        <div className="p-3 bg-white rounded-xl border border-slate-200 space-y-2">
+                          <span className="text-[11px] font-bold uppercase text-slate-500 block">
+                            Manager Review Gate for v{ver.version_number}
+                          </span>
+                          <textarea
+                            value={selectedVersionForReview === ver.id ? versionReviewComments : ''}
+                            onChange={(e) => {
+                              setSelectedVersionForReview(ver.id);
+                              setVersionReviewComments(e.target.value);
+                            }}
+                            rows={2}
+                            placeholder="Enter review feedback, timestamped change requests, or approval remarks..."
+                            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium"
+                          />
+                          <div className="flex items-center gap-2 pt-1">
+                            <button
+                              onClick={() => {
+                                setVersionReviewDecision('APPROVED');
+                                handleReviewCutDecision(ver.id);
+                              }}
+                              disabled={actionLoading}
+                              className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-1 shadow-2xs"
+                            >
+                              <Check className="w-3.5 h-3.5" /> Approve Cut
+                            </button>
+                            <button
+                              onClick={() => {
+                                setVersionReviewDecision('CHANGES_REQUESTED');
+                                handleReviewCutDecision(ver.id);
+                              }}
+                              disabled={actionLoading}
+                              className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold flex items-center gap-1 shadow-2xs"
+                            >
+                              <RotateCcw className="w-3.5 h-3.5" /> Request Rework
+                            </button>
+                          </div>
+                        </div>
+                      )
                     )}
                   </div>
-                ))}
-              </div>
-            ) : (
-              <div className="p-8 bg-slate-50 rounded-2xl border border-slate-200 text-center text-xs text-slate-500 space-y-2">
-                <Scissors className="w-8 h-8 text-slate-300 mx-auto" />
-                <p className="font-bold text-slate-700">Editing Queue</p>
-                <p>Assigned editor: {editing?.editor_name || 'Pending assignment'}</p>
-              </div>
-            )}
+                ))
+              )}
+            </div>
           </div>
         )}
 
@@ -814,46 +1901,213 @@ export const ProjectDetailPage = () => {
         {activeTab === 'thumbnail' && (
           <div className="space-y-6">
             <div>
-              <h3 className="text-sm font-bold text-slate-900 mb-1">Stage 7: Thumbnail & Publishing Assets</h3>
-              <p className="text-xs text-slate-500">High-CTR thumbnail graphics and metadata tags.</p>
+              <h3 className="text-sm font-bold text-slate-900 mb-1">Stage 7: High-CTR Thumbnail Design & Assets</h3>
+              <p className="text-xs text-slate-500">Designers upload graphics and manage thumbnail approval before publishing.</p>
             </div>
 
-            {!thumbnails || thumbnails.length === 0 ? (
-              <div className="p-8 bg-slate-50 rounded-2xl border border-slate-200 text-center text-xs text-slate-500 space-y-2">
-                <Image className="w-8 h-8 text-slate-300 mx-auto" />
-                <p className="font-bold text-slate-700">No Thumbnails Uploaded Yet</p>
-                <p>Designers can upload high-CTR thumbnails once final cut is approved.</p>
+            {/* Upload Thumbnail Form */}
+            <form onSubmit={handleSubmitThumbnail} className="p-5 bg-slate-50 rounded-2xl border border-slate-200 space-y-4">
+              <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                Submit High-CTR Thumbnail Asset
+              </h4>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="sm:col-span-2">
+                  <label className="block text-[11px] font-bold uppercase text-slate-600 mb-1">
+                    Thumbnail Image URL *
+                  </label>
+                  <input
+                    type="url"
+                    value={thumbnailUrl}
+                    onChange={(e) => setThumbnailUrl(e.target.value)}
+                    placeholder="https://images.unsplash.com/... or Cloudinary URL"
+                    required
+                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold uppercase text-slate-600 mb-1">
+                    Design Notes & Hook
+                  </label>
+                  <input
+                    type="text"
+                    value={thumbnailNotes}
+                    onChange={(e) => setThumbnailNotes(e.target.value)}
+                    placeholder="e.g. Bold 3-word title hook, high contrast"
+                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium"
+                  />
+                </div>
               </div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {thumbnails.map((tn) => (
-                  <div key={tn.id} className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-2">
-                    <img
-                      src={tn.thumbnail_url}
-                      alt="Thumbnail preview"
-                      className="w-full h-40 object-cover rounded-xl border border-slate-200"
-                    />
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="font-bold text-slate-800">Version {tn.version_number}</span>
-                      <StatusBadge status={tn.status} />
+              <div className="flex justify-end pt-1">
+                <button
+                  type="submit"
+                  disabled={actionLoading}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm disabled:opacity-50"
+                >
+                  <UploadCloud className="w-3.5 h-3.5" /> Submit Thumbnail
+                </button>
+              </div>
+            </form>
+
+            {/* Thumbnails Grid */}
+            <div className="space-y-3">
+              <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider">Submitted Thumbnails</h4>
+              {!thumbnails || thumbnails.length === 0 ? (
+                <div className="p-8 bg-slate-50 rounded-2xl border border-slate-200 text-center text-xs text-slate-500">
+                  No thumbnails uploaded yet.
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                  {thumbnails.map((tn) => (
+                    <div key={tn.id} className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
+                      <img
+                        src={tn.thumbnail_url}
+                        alt="Thumbnail preview"
+                        className="w-full h-44 object-cover rounded-xl border border-slate-200 shadow-2xs"
+                      />
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="font-bold text-slate-800">Version {tn.version_number}</span>
+                        <StatusBadge status={tn.status} />
+                      </div>
+                      {tn.feedback_notes && (
+                        <p className="text-[11px] text-slate-600 bg-white p-2 rounded-lg border border-slate-200">
+                          {tn.feedback_notes}
+                        </p>
+                      )}
+
+                      {/* Approval gate for manager */}
+                      {(isManager || isAdmin) && tn.status !== 'APPROVED' && (
+                        <div className="pt-2 border-t border-slate-200 space-y-2">
+                          <input
+                            type="text"
+                            placeholder="Approval remarks or revision notes..."
+                            value={selectedThumbnailForReview === tn.id ? thumbReviewFeedback : ''}
+                            onChange={(e) => {
+                              setSelectedThumbnailForReview(tn.id);
+                              setThumbReviewFeedback(e.target.value);
+                            }}
+                            className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs"
+                          />
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => handleReviewThumbnail(tn.id, 'APPROVED')}
+                              disabled={actionLoading}
+                              className="w-full py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold shadow-2xs"
+                            >
+                              Approve & Move to Publish
+                            </button>
+                            <button
+                              onClick={() => handleReviewThumbnail(tn.id, 'CHANGES_REQUESTED')}
+                              disabled={actionLoading}
+                              className="w-full py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-bold shadow-2xs"
+                            >
+                              Request Changes
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </div>
-                  </div>
-                ))}
-              </div>
-            )}
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         )}
 
         {/* TAB 7: MULTI-PLATFORM PUBLISHING */}
         {activeTab === 'publishing' && (
           <div className="space-y-6">
-            <div>
-              <h3 className="text-sm font-bold text-slate-900 mb-1">Stage 8: Multi-Platform Publishing</h3>
-              <p className="text-xs text-slate-500">Independent live URLs for Instagram, Facebook, and YouTube.</p>
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-bold text-slate-900 mb-1">Stage 8: Multi-Platform Social Publishing</h3>
+                <p className="text-xs text-slate-500">Record independent live links for YouTube, Instagram, Facebook, and LinkedIn.</p>
+              </div>
+              {project.current_stage === 'PUBLISHING' && (isManager || isAdmin) && (
+                <button
+                  onClick={handleCompleteProject}
+                  disabled={actionLoading}
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm"
+                >
+                  <CheckSquare className="w-3.5 h-3.5" /> Mark Entire Project Live & Completed
+                </button>
+              )}
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              {['YOUTUBE', 'INSTAGRAM', 'FACEBOOK'].map((platform) => {
+            {/* Record Platform Publish Form */}
+            <form onSubmit={handlePublishPlatform} className="p-5 bg-slate-50 rounded-2xl border border-slate-200 space-y-4">
+              <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                Record Live Social Post Publication
+              </h4>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-[11px] font-bold uppercase text-slate-600 mb-1">Platform *</label>
+                  <select
+                    value={pubPlatform}
+                    onChange={(e) => setPubPlatform(e.target.value)}
+                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold"
+                  >
+                    <option value="YOUTUBE">YouTube</option>
+                    <option value="INSTAGRAM">Instagram</option>
+                    <option value="FACEBOOK">Facebook</option>
+                    <option value="LINKEDIN">LinkedIn</option>
+                  </select>
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label className="block text-[11px] font-bold uppercase text-slate-600 mb-1">
+                    Live Post URL *
+                  </label>
+                  <input
+                    type="url"
+                    value={postUrl}
+                    onChange={(e) => setPostUrl(e.target.value)}
+                    placeholder="https://www.youtube.com/watch?v=... or https://instagram.com/p/..."
+                    required
+                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-bold uppercase text-slate-600 mb-1">
+                    Post Caption & Copy
+                  </label>
+                  <input
+                    type="text"
+                    value={postCaption}
+                    onChange={(e) => setPostCaption(e.target.value)}
+                    placeholder="Headline or primary hook..."
+                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold uppercase text-slate-600 mb-1">
+                    Hashtags
+                  </label>
+                  <input
+                    type="text"
+                    value={postHashtags}
+                    onChange={(e) => setPostHashtags(e.target.value)}
+                    placeholder="#VCube #FullStack #Python #WebDev"
+                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end pt-1">
+                <button
+                  type="submit"
+                  disabled={actionLoading}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm disabled:opacity-50"
+                >
+                  <Share2 className="w-3.5 h-3.5" /> Save Live Publication Record
+                </button>
+              </div>
+            </form>
+
+            {/* Channels Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {['YOUTUBE', 'INSTAGRAM', 'FACEBOOK', 'LINKEDIN'].map((platform) => {
                 const pubRecord = publications?.find((p) => p.platform === platform);
 
                 return (
@@ -872,7 +2126,7 @@ export const ProjectDetailPage = () => {
                     </div>
 
                     {pubRecord?.post_url ? (
-                      <div className="space-y-1">
+                      <div className="space-y-1.5">
                         <a
                           href={pubRecord.post_url}
                           target="_blank"
@@ -882,6 +2136,11 @@ export const ProjectDetailPage = () => {
                           <ExternalLink className="w-3.5 h-3.5 shrink-0" />
                           <span className="truncate">{pubRecord.post_url}</span>
                         </a>
+                        {pubRecord.hashtags && (
+                          <span className="text-[10px] text-slate-500 font-mono block truncate">
+                            {pubRecord.hashtags}
+                          </span>
+                        )}
                         <span className="text-[10px] text-slate-400 block">
                           Published on {new Date(pubRecord.published_at).toLocaleDateString()}
                         </span>
@@ -912,7 +2171,6 @@ export const ProjectDetailPage = () => {
               <div className="relative pl-6 space-y-6 border-l-2 border-slate-200 ml-3">
                 {timeline.map((event) => (
                   <div key={event.id} className="relative group">
-                    {/* Timeline bullet */}
                     <div className="absolute -left-[31px] top-1 w-3.5 h-3.5 rounded-full bg-blue-600 border-2 border-white shadow-sm" />
                     <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200/70 space-y-1">
                       <div className="flex items-center justify-between text-xs">
@@ -932,6 +2190,252 @@ export const ProjectDetailPage = () => {
           </div>
         )}
       </div>
+
+      {/* MODAL: ASSIGN CREW MEMBER */}
+      {showAddCrewModal && (
+        <div className="fixed inset-0 z-50 bg-slate-950/40 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-xl max-w-md w-full space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-bold text-slate-900">Assign Crew Member</h3>
+              <button onClick={() => setShowAddCrewModal(false)} className="text-slate-400 hover:text-slate-600">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleAddTeamMember} className="space-y-3">
+              <div>
+                <label className="block text-[11px] font-bold uppercase text-slate-600 mb-1">Select Employee *</label>
+                <select
+                  value={newCrewUserId}
+                  onChange={(e) => setNewCrewUserId(e.target.value)}
+                  required
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium"
+                >
+                  <option value="">-- Choose employee --</option>
+                  {usersList.map((u) => (
+                    <option key={u.id} value={u.id}>
+                      {u.name} ({u.role?.name || u.email})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold uppercase text-slate-600 mb-1">Role in Shoot *</label>
+                <select
+                  value={newCrewRole}
+                  onChange={(e) => setNewCrewRole(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold"
+                >
+                  <option value="SECOND_CAMERA">Second Camera</option>
+                  <option value="ANCHOR">Anchor / Presenter</option>
+                  <option value="LIGHTING_ASSISTANT">Lighting Assistant</option>
+                  <option value="AUDIO_TECH">Audio Technician</option>
+                  <option value="LEAD_CAMERAMAN">Lead Cameraman</option>
+                </select>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowAddCrewModal(false)}
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={actionLoading}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold"
+                >
+                  Add to Roster
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: ADD SCENE */}
+      {showAddSceneModal && (
+        <div className="fixed inset-0 z-50 bg-slate-950/40 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-xl max-w-md w-full space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-bold text-slate-900">Add Video Scene</h3>
+              <button onClick={() => setShowAddSceneModal(false)} className="text-slate-400 hover:text-slate-600">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleAddScene} className="space-y-3">
+              <div>
+                <label className="block text-[11px] font-bold uppercase text-slate-600 mb-1">Scene Number *</label>
+                <input
+                  type="number"
+                  min="1"
+                  value={newSceneNumber}
+                  onChange={(e) => setNewSceneNumber(e.target.value)}
+                  required
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold uppercase text-slate-600 mb-1">Scene Title *</label>
+                <input
+                  type="text"
+                  value={newSceneTitle}
+                  onChange={(e) => setNewSceneTitle(e.target.value)}
+                  placeholder="e.g. Intro Hook - Agency K Overview"
+                  required
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold uppercase text-slate-600 mb-1">Description / Location</label>
+                <textarea
+                  value={newSceneDesc}
+                  onChange={(e) => setNewSceneDesc(e.target.value)}
+                  placeholder="e.g. Anchor sitting in studio with laptop"
+                  rows={2}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowAddSceneModal(false)}
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={actionLoading}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold"
+                >
+                  Create Scene
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: LOG SHOT */}
+      {activeSceneForShot && (
+        <div className="fixed inset-0 z-50 bg-slate-950/40 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-xl max-w-lg w-full space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-bold text-slate-900">
+                  Log Shot for Scene {activeSceneForShot.scene_number}
+                </h3>
+                <p className="text-[11px] text-slate-500">{activeSceneForShot.title}</p>
+              </div>
+              <button onClick={() => setActiveSceneForShot(null)} className="text-slate-400 hover:text-slate-600">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleLogShot} className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-bold uppercase text-slate-600 mb-1">Shot # *</label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={newShotNumber}
+                    onChange={(e) => setNewShotNumber(e.target.value)}
+                    required
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold uppercase text-slate-600 mb-1">Take # *</label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={newTakeNumber}
+                    onChange={(e) => setNewTakeNumber(e.target.value)}
+                    required
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-bold uppercase text-slate-600 mb-1">Clip Filename *</label>
+                  <input
+                    type="text"
+                    value={newClipName}
+                    onChange={(e) => setNewClipName(e.target.value)}
+                    placeholder="e.g. CLIP_001.MOV"
+                    required
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-bold"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold uppercase text-slate-600 mb-1">Initial Status *</label>
+                  <select
+                    value={newShotStatus}
+                    onChange={(e) => setNewShotStatus(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold"
+                  >
+                    <option value="CONFIRMED">CONFIRMED (Usable Take)</option>
+                    <option value="RECORDED">RECORDED</option>
+                    <option value="RETAKE_REQUIRED">RETAKE REQUIRED</option>
+                    <option value="REJECTED">REJECTED</option>
+                    <option value="UNUSABLE">UNUSABLE</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold uppercase text-slate-600 mb-1">Dialogue / Script Reference</label>
+                <input
+                  type="text"
+                  value={newDialogueRef}
+                  onChange={(e) => setNewDialogueRef(e.target.value)}
+                  placeholder="e.g. 'Welcome to Agency K, today we examine...'"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold uppercase text-slate-600 mb-1">Notes / Camera Angle</label>
+                <input
+                  type="text"
+                  value={newShotNotes}
+                  onChange={(e) => setNewShotNotes(e.target.value)}
+                  placeholder="e.g. Close-up on anchor, slight glare at 0:15"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setActiveSceneForShot(null)}
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={actionLoading}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold"
+                >
+                  Save Shot
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
