@@ -47,13 +47,46 @@ app.use(helmet({
   crossOriginResourcePolicy: { policy: 'cross-origin' },
 }));
 
-// Cross-Origin Resource Sharing
-app.use(cors({
-  origin: env.FRONTEND_URL,
+// Cross-Origin Resource Sharing (CORS) Configuration
+const configuredOrigins = (env.FRONTEND_URL || 'http://localhost:5173')
+  .split(',')
+  .map((url) => url.trim().replace(/\/+$/, ''))
+  .filter(Boolean);
+
+const corsOptions = {
+  origin: (origin, callback) => {
+    // Allow server-to-server, curl, Postman, or requests without Origin header
+    if (!origin) return callback(null, true);
+
+    const cleanOrigin = origin.replace(/\/+$/, '');
+
+    // 1. Direct match with configured FRONTEND_URL
+    const isDirectMatch = configuredOrigins.some((allowed) => allowed === cleanOrigin);
+
+    // 2. Vercel deployments (production + preview subdomains)
+    const isVercelMatch =
+      cleanOrigin === 'https://meflow-two.vercel.app' ||
+      /^https:\/\/meflow.*\.vercel\.app$/.test(cleanOrigin);
+
+    // 3. Localhost development ports
+    const isLocalMatch = /^http:\/\/localhost:(3000|5173|5174|4173)$/.test(cleanOrigin);
+
+    if (isDirectMatch || isVercelMatch || isLocalMatch) {
+      // Echo exact incoming origin to satisfy browser CORS specification
+      return callback(null, true);
+    }
+
+    return callback(new Error(`Origin '${origin}' not allowed by CORS policy.`));
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-}));
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+  exposedHeaders: ['Set-Cookie'],
+  optionsSuccessStatus: 204,
+};
+
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
 
 // Request Logger
 if (env.isDev) {
