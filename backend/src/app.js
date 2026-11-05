@@ -25,6 +25,7 @@ import auditRoutes from './routes/audit.routes.js';
 import publishingRoutes from './routes/publishing.routes.js';
 import courseRoutes from './routes/course.routes.js';
 import projectRoutes from './routes/project.routes.js';
+import contentRoutes from './routes/content.routes.js';
 
 const app = express();
 
@@ -84,6 +85,7 @@ app.use('/api/audit', auditRoutes);
 app.use('/api/publishing', publishingRoutes);
 app.use('/api/courses', courseRoutes);
 app.use('/api/projects', projectRoutes);
+app.use('/api/content', contentRoutes);
 
 // Catch-all 404 Route
 app.use('/api/*', (req, res) => {

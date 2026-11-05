@@ -42,6 +42,13 @@ export const ProjectDetailPage = () => {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
 
+  // Stage 2 Script Workspace states
+  const [googleDocsUrl, setGoogleDocsUrl] = useState('');
+  const [scriptVersion, setScriptVersion] = useState(1);
+  const [scriptNotes, setScriptNotes] = useState('');
+  const [reviewComments, setReviewComments] = useState('');
+  const [actionLoading, setActionLoading] = useState(false);
+
   const fetchProjectDetails = async () => {
     try {
       const [projRes, timelineRes] = await Promise.all([
@@ -51,6 +58,11 @@ export const ProjectDetailPage = () => {
 
       if (projRes.success && projRes.data) {
         setProjectData(projRes.data);
+        if (projRes.data.script) {
+          setGoogleDocsUrl(projRes.data.script.google_docs_url || '');
+          setScriptVersion(projRes.data.script.script_version || 1);
+          setScriptNotes(projRes.data.script.content_notes || '');
+        }
       }
       if (timelineRes.success && timelineRes.data) {
         setTimeline(timelineRes.data);
@@ -106,6 +118,85 @@ export const ProjectDetailPage = () => {
       }
     } catch (err) {
       toast.error(err.message || 'Failed to submit draft.');
+    }
+  };
+
+  const handleAcceptScriptWork = async () => {
+    setActionLoading(true);
+    try {
+      const res = await apiClient.post(`/content/${project.id}/accept`);
+      if (res.success) {
+        toast.success(res.message);
+        fetchProjectDetails();
+      }
+    } catch (err) {
+      toast.error(err.message || 'Failed to claim scriptwriting.');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleSaveScriptDoc = async (e) => {
+    e.preventDefault();
+    if (!googleDocsUrl.trim()) {
+      toast.error('Please enter a valid Google Docs URL.');
+      return;
+    }
+
+    setActionLoading(true);
+    try {
+      const res = await apiClient.put(`/content/${project.id}/script`, {
+        google_docs_url: googleDocsUrl.trim(),
+        script_version: parseInt(scriptVersion, 10) || 1,
+        content_notes: scriptNotes.trim() || null,
+      });
+      if (res.success) {
+        toast.success(res.message);
+        fetchProjectDetails();
+      }
+    } catch (err) {
+      toast.error(err.message || 'Failed to save Google Docs link.');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleSubmitScriptForApproval = async () => {
+    setActionLoading(true);
+    try {
+      const res = await apiClient.post(`/content/${project.id}/submit`);
+      if (res.success) {
+        toast.success(res.message);
+        fetchProjectDetails();
+      }
+    } catch (err) {
+      toast.error(err.message || 'Failed to submit script for review.');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleReviewScriptDecision = async (decision) => {
+    if (!reviewComments.trim()) {
+      toast.error('Please enter review feedback notes before submitting decision.');
+      return;
+    }
+
+    setActionLoading(true);
+    try {
+      const res = await apiClient.post(`/content/${project.id}/review`, {
+        decision,
+        comments: reviewComments.trim(),
+      });
+      if (res.success) {
+        toast.success(res.message);
+        setReviewComments('');
+        fetchProjectDetails();
+      }
+    } catch (err) {
+      toast.error(err.message || 'Failed to record script decision.');
+    } finally {
+      setActionLoading(false);
     }
   };
 
@@ -320,46 +411,210 @@ export const ProjectDetailPage = () => {
               )}
             </div>
 
-            {script && script.google_docs_url ? (
-              <div className="p-5 bg-blue-50/50 rounded-2xl border border-blue-200/80 space-y-3">
-                <div className="flex items-center justify-between">
+            {/* Script Status Banner & Review / Edit Interface */}
+            {script && script.status === 'APPROVED' ? (
+              <div className="space-y-4">
+                <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-200 text-xs text-emerald-900 flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <FileText className="w-5 h-5 text-blue-600" />
+                    <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
                     <div>
-                      <h4 className="text-xs font-bold text-slate-900">Google Docs Master Script (v{script.script_version})</h4>
-                      <p className="text-[11px] text-slate-500">Author: {script.writer_name || 'Assigned Writer'}</p>
+                      <p className="font-bold">Script Approved & Locked</p>
+                      <p className="text-[11px] text-emerald-700">Video has progressed to Stage 3: Cinematography.</p>
                     </div>
                   </div>
-                  <a
-                    href={script.google_docs_url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-colors shadow-sm"
-                  >
-                    <span>Open in Google Docs</span>
-                    <ExternalLink className="w-3.5 h-3.5" />
-                  </a>
+                  {script.google_docs_url && (
+                    <a
+                      href={script.google_docs_url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold transition-colors"
+                    >
+                      <span>Open in Google Docs</span>
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </a>
+                  )}
                 </div>
 
-                {script.content_notes && (
-                  <div className="pt-2 border-t border-blue-200/40 text-xs text-slate-700">
-                    <span className="font-bold text-slate-900">Content Notes: </span>
-                    {script.content_notes}
+                {script.reviewer_feedback && (
+                  <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 text-xs text-slate-700">
+                    <span className="font-bold text-slate-900">Reviewer Notes: </span>
+                    {script.reviewer_feedback}
                   </div>
                 )}
               </div>
+            ) : script && script.status === 'AVAILABLE' ? (
+              <div className="p-6 bg-slate-50 rounded-2xl border border-slate-200 text-center space-y-3">
+                <FileText className="w-10 h-10 text-blue-500 mx-auto" />
+                <h4 className="text-sm font-bold text-slate-900">Script Writing Ready for Pickup</h4>
+                <p className="text-xs text-slate-500 max-w-md mx-auto">
+                  This video draft has been submitted and is ready for a Content Writer to claim. Click below to take responsibility and prepare the Google Docs draft.
+                </p>
+                <button
+                  onClick={handleAcceptScriptWork}
+                  disabled={actionLoading}
+                  className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm shadow-blue-500/20 disabled:opacity-50"
+                >
+                  {actionLoading ? 'Claiming Work...' : 'Claim Scriptwriting Task'}
+                </button>
+              </div>
+            ) : script && script.status === 'SUBMITTED' ? (
+              <div className="space-y-4">
+                <div className="p-4 bg-purple-50 rounded-2xl border border-purple-200 text-xs text-purple-900 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Clock className="w-5 h-5 text-purple-600 shrink-0" />
+                    <div>
+                      <p className="font-bold">Script Submitted & Awaiting Review</p>
+                      <p className="text-[11px] text-purple-700">
+                        Version {script.script_version} authored by <strong>{script.writer_name}</strong>.
+                      </p>
+                    </div>
+                  </div>
+                  {script.google_docs_url && (
+                    <a
+                      href={script.google_docs_url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-purple-700 hover:bg-purple-800 text-white rounded-xl text-xs font-bold transition-colors"
+                    >
+                      <span>Review in Google Docs</span>
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </a>
+                  )}
+                </div>
+
+                {/* Review Gate Decision Box (Manager or Content Creator) */}
+                {(isManager || isCreator) && (
+                  <div className="p-5 bg-white rounded-2xl border border-slate-200/80 shadow-sm space-y-3">
+                    <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                      Manager Script Review & Sign-Off Gate
+                    </h4>
+                    <textarea
+                      value={reviewComments}
+                      onChange={(e) => setReviewComments(e.target.value)}
+                      rows={2}
+                      placeholder="Add review feedback, mandatory dialogue adjustments, or approval remarks..."
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-blue-600 font-medium"
+                    />
+                    <div className="flex items-center gap-2 pt-1">
+                      <button
+                        onClick={() => handleReviewScriptDecision('APPROVED')}
+                        disabled={actionLoading}
+                        className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors shadow-sm disabled:opacity-50"
+                      >
+                        <Check className="w-4 h-4" /> Approve Script & Advance to Shoot (Stage 3)
+                      </button>
+                      <button
+                        onClick={() => handleReviewScriptDecision('CHANGES_REQUESTED')}
+                        disabled={actionLoading}
+                        className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors shadow-sm disabled:opacity-50"
+                      >
+                        <RotateCcw className="w-4 h-4" /> Request Rework / Changes
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : script && (script.status === 'ACCEPTED' || script.status === 'IN_PROGRESS' || script.status === 'SCRIPT_READY' || script.status === 'CHANGES_REQUESTED') ? (
+              <div className="space-y-4">
+                {script.status === 'CHANGES_REQUESTED' && (
+                  <div className="p-3.5 bg-amber-50 rounded-xl border border-amber-200 text-xs text-amber-900 space-y-1">
+                    <span className="font-bold flex items-center gap-1 text-amber-800">
+                      <RotateCcw className="w-3.5 h-3.5 text-amber-600" /> Changes Requested by Reviewer:
+                    </span>
+                    <p>{script.reviewer_feedback}</p>
+                  </div>
+                )}
+
+                <form onSubmit={handleSaveScriptDoc} className="p-5 bg-slate-50 rounded-2xl border border-slate-200 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="text-xs font-bold text-slate-900">Google Docs Script Integration</h4>
+                      <p className="text-[11px] text-slate-500">
+                        Assigned Writer: <strong className="text-slate-700">{script.writer_name || user?.name}</strong>
+                      </p>
+                    </div>
+                    {script.google_docs_url && (
+                      <a
+                        href={script.google_docs_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1 text-xs font-bold text-blue-600 hover:underline"
+                      >
+                        <span>Open Document</span>
+                        <ExternalLink className="w-3.5 h-3.5" />
+                      </a>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                    <div className="sm:col-span-3">
+                      <label className="block text-[11px] font-bold uppercase text-slate-600 mb-1">
+                        Google Docs URL *
+                      </label>
+                      <input
+                        type="url"
+                        value={googleDocsUrl}
+                        onChange={(e) => setGoogleDocsUrl(e.target.value)}
+                        placeholder="https://docs.google.com/document/d/..."
+                        required
+                        className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-blue-600 font-medium"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold uppercase text-slate-600 mb-1">
+                        Version #
+                      </label>
+                      <input
+                        type="number"
+                        min="1"
+                        value={scriptVersion}
+                        onChange={(e) => setScriptVersion(e.target.value)}
+                        className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-blue-600 font-medium"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold uppercase text-slate-600 mb-1">
+                      Content Notes & Hook Summary
+                    </label>
+                    <textarea
+                      value={scriptNotes}
+                      onChange={(e) => setScriptNotes(e.target.value)}
+                      rows={2}
+                      placeholder="Outline target word count, estimated duration, key anchor cues, or graphics prompts..."
+                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-blue-600 font-medium"
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between pt-1">
+                    <button
+                      type="submit"
+                      disabled={actionLoading}
+                      className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition-colors disabled:opacity-50"
+                    >
+                      {actionLoading ? 'Saving...' : 'Save Script Details'}
+                    </button>
+
+                    {script.google_docs_url && (
+                      <button
+                        type="button"
+                        onClick={handleSubmitScriptForApproval}
+                        disabled={actionLoading}
+                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors shadow-sm disabled:opacity-50"
+                      >
+                        <Send className="w-3.5 h-3.5" /> Submit Script for Approval
+                      </button>
+                    )}
+                  </div>
+                </form>
+              </div>
             ) : (
-              <div className="text-center py-10 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
-                <FileText className="w-10 h-10 text-slate-300 mx-auto" />
-                <h4 className="text-xs font-bold text-slate-800">
-                  {project.is_submitted_for_content
-                    ? 'Script Writing in Progress'
-                    : 'Draft Not Yet Submitted for Scripting'}
-                </h4>
+              <div className="text-center py-10 bg-slate-50 rounded-2xl border border-slate-200 space-y-2">
+                <FileText className="w-8 h-8 text-slate-300 mx-auto" />
+                <h4 className="text-xs font-bold text-slate-800">Draft Not Submitted for Scripting</h4>
                 <p className="text-xs text-slate-500 max-w-sm mx-auto">
-                  {project.is_submitted_for_content
-                    ? 'Content writers can claim this project from Available Work to link their Google Docs script.'
-                    : 'Submit the draft from the Overview tab to make it available to the content writing team.'}
+                  Submit the video draft from the Overview tab to make it available to the content writing team.
                 </p>
               </div>
             )}
