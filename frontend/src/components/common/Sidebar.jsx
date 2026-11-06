@@ -12,7 +12,6 @@ import {
   Calendar,
   Share2,
   ScrollText,
-  Sliders,
   Briefcase,
   Clock,
 } from 'lucide-react';
@@ -48,19 +47,19 @@ export const Sidebar = () => {
   });
 
   return (
-    <aside className="w-64 shrink-0 bg-white border-r border-slate-200/80 min-h-[calc(100vh-61px)] p-4 flex flex-col justify-between hidden md:flex">
+    <aside className="w-64 shrink-0 bg-white border-r border-[#EAEAEA] min-h-[calc(100vh-57px)] p-4 flex flex-col justify-between hidden md:flex">
       <div className="space-y-6">
         {/* Workspace Mode Badge */}
-        <div className="px-3 py-2 rounded-xl bg-slate-50 border border-slate-200/60 text-xs font-semibold text-slate-600 flex items-center justify-between">
-          <span className="uppercase tracking-wider text-[11px] text-slate-400">Mode</span>
-          <span className="text-blue-700 font-bold">{isAdmin ? 'Admin Console' : 'Worker Workspace'}</span>
+        <div className="px-3 py-2 rounded-xl bg-[#F8F8F7] border border-[#EAEAEA] text-xs font-semibold text-[#737373] flex items-center justify-between">
+          <span className="uppercase tracking-wider text-[10px] text-[#737373] font-bold">Workspace</span>
+          <span className="text-[#FF6B00] font-black">{isAdmin ? 'Admin Console' : 'Worker Portal'}</span>
         </div>
 
         {/* Admin Navigation Section */}
         {isAdmin && (
           <div>
-            <div className="px-3 mb-2 text-[11px] font-bold tracking-wider text-slate-400 uppercase">
-              Management
+            <div className="px-3 mb-2 text-[10px] font-black tracking-wider text-[#A3A3A3] uppercase">
+              Management Console
             </div>
             <nav className="space-y-1">
               {filteredAdminNav.map((item) => {
@@ -70,10 +69,10 @@ export const Sidebar = () => {
                     key={item.to}
                     to={item.to}
                     className={({ isActive }) =>
-                      `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 ${
+                      `flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-bold transition-all duration-150 ${
                         isActive
-                          ? 'bg-blue-600 text-white shadow-sm shadow-blue-500/20'
-                          : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                          ? 'bg-[#FFF7ED] text-[#FF6B00] shadow-xs'
+                          : 'text-[#737373] hover:text-[#171717] hover:bg-[#F8F8F7]'
                       }`
                     }
                   >
@@ -86,10 +85,10 @@ export const Sidebar = () => {
           </div>
         )}
 
-        {/* Employee Workspace Navigation Section */}
+        {/* Employee Navigation Section */}
         <div>
-          <div className="px-3 mb-2 text-[11px] font-bold tracking-wider text-slate-400 uppercase">
-            {isAdmin ? 'Employee View' : 'My Production'}
+          <div className="px-3 mb-2 text-[10px] font-black tracking-wider text-[#A3A3A3] uppercase">
+            {isAdmin ? 'Employee Pipeline' : 'My Production Queue'}
           </div>
           <nav className="space-y-1">
             {employeeNav.map((item) => {
@@ -99,10 +98,10 @@ export const Sidebar = () => {
                   key={item.to}
                   to={item.to}
                   className={({ isActive }) =>
-                    `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 ${
+                    `flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-bold transition-all duration-150 ${
                       isActive
-                        ? 'bg-blue-600 text-white shadow-sm shadow-blue-500/20'
-                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                        ? 'bg-[#FFF7ED] text-[#FF6B00] shadow-xs'
+                        : 'text-[#737373] hover:text-[#171717] hover:bg-[#F8F8F7]'
                     }`
                   }
                 >
@@ -116,11 +115,10 @@ export const Sidebar = () => {
       </div>
 
       {/* Footer Info */}
-      <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/60 text-xs text-slate-500 text-center">
-        <p className="font-semibold text-slate-700">VCube Operations</p>
-        <p className="text-[11px] text-slate-400 mt-0.5">TiDB • Brevo • Cloudinary</p>
+      <div className="p-3 rounded-xl bg-[#F8F8F7] border border-[#EAEAEA] text-xs text-[#737373] text-center">
+        <p className="font-bold text-[#171717]">VCUBE MediaFlow</p>
+        <p className="text-[10px] text-[#A3A3A3] mt-0.5">TiDB • Brevo • Cloudinary</p>
       </div>
     </aside>
   );
 };
-

@@ -10,6 +10,12 @@ export const StatCard = ({
   onClick = null,
 }) => {
   const variantStyles = {
+    orange: {
+      bg: 'bg-orange-50/60',
+      text: 'text-vcube-orange font-bold',
+      iconBg: 'bg-orange-100 text-vcube-orange',
+      border: 'border-orange-200/80',
+    },
     blue: {
       bg: 'bg-blue-50/50',
       text: 'text-blue-700',

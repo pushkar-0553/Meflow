@@ -241,6 +241,73 @@ class EmailService {
   }
 
   /**
+   * Send 6-Digit Password Reset 2-Factor OTP Verification Email via Brevo
+   */
+  async sendResetOtpEmail({ to, name, otp }) {
+    const subject = `VCUBE MediaFlow — Your Verification Code: ${otp}`;
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Password Reset Verification Code</title>
+      </head>
+      <body style="margin: 0; padding: 0; background-color: #F8F8F7; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+        <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #F8F8F7; padding: 40px 16px;">
+          <tr>
+            <td align="center">
+              <table width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width: 520px; background-color: #FFFFFF; border-radius: 20px; border: 1px solid #EAEAEA; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.04);">
+                <tr>
+                  <td style="padding: 28px 32px; background: #171717; border-bottom: 3px solid #FF6B00;">
+                    <div style="font-size: 20px; font-weight: 900; color: #FFFFFF; letter-spacing: -0.5px;">
+                      <span style="color: #FF6B00;">VCUBE</span> MediaFlow
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding: 36px 32px;">
+                    <h2 style="color: #171717; font-size: 20px; font-weight: 800; margin: 0 0 12px;">Password Recovery Code</h2>
+                    <p style="color: #737373; font-size: 14px; line-height: 1.6; margin: 0 0 24px;">
+                      Hello <strong>${name}</strong>,<br>
+                      We received a request to verify your account and reset your password for VCUBE MediaFlow.
+                    </p>
+                    <div style="background-color: #FFF7ED; border: 2px dashed #FF6B00; border-radius: 14px; padding: 24px; text-align: center; margin: 0 0 24px;">
+                      <span style="display: block; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px; color: #EA580C; margin-bottom: 8px;">6-Digit Verification Code</span>
+                      <span style="font-family: 'Courier New', monospace; font-size: 38px; font-weight: 900; letter-spacing: 8px; color: #171717;">${otp}</span>
+                    </div>
+                    <p style="color: #737373; font-size: 13px; line-height: 1.6; margin: 0 0 16px;">
+                      ⏱️ This code expires in <strong>5 minutes</strong> and allows up to 5 verification attempts.
+                    </p>
+                    <p style="color: #A3A3A3; font-size: 12px; line-height: 1.5; margin: 0;">
+                      If you did not request this, you can safely ignore this email; your account remains secure.
+                    </p>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding: 20px 32px; background-color: #F8F8F7; border-top: 1px solid #EAEAEA; text-align: center;">
+                    <p style="color: #A3A3A3; font-size: 11px; margin: 0;">
+                      VCUBE MediaFlow Security • Sent via Brevo
+                    </p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+      </body>
+      </html>
+    `;
+
+    return this.sendEmail({
+      to,
+      subject,
+      html,
+      recipientName: name,
+    });
+  }
+
+  /**
    * Send Password Reset Email with secure 1-hour expiration token
    */
   async sendPasswordResetEmail({ to, name, resetUrl }) {

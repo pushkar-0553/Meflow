@@ -1,0 +1,17 @@
+{
+  "short_name": "MediaFlow",
+  "name": "VCUBE MediaFlow",
+  "icons": [
+    {
+      "src": "/app-icon.jpg",
+      "type": "image/jpeg",
+      "sizes": "192x192 512x512"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#F8F8F7",
+  "theme_color": "#FF6B00",
+  "display": "standalone",
+  "orientation": "portrait"
+}
+

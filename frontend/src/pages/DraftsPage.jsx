@@ -113,13 +113,13 @@ export const DraftsPage = () => {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6 pb-20 md:pb-6 max-w-7xl mx-auto">
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-black text-slate-900 tracking-tight">Video Production Drafts</h1>
-            <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-100 text-blue-800">
+          <div className="flex items-center gap-2 flex-wrap">
+            <h1 className="text-xl md:text-2xl font-black text-slate-900 tracking-tight">Video Production Drafts</h1>
+            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-extrabold uppercase bg-orange-50 text-vcube-orange border border-orange-200">
               Stage 1 Shared Workspace
             </span>
           </div>
@@ -130,7 +130,7 @@ export const DraftsPage = () => {
 
         <button
           onClick={() => setCreateModalOpen(true)}
-          className="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm shadow-blue-500/20 active:scale-[0.98]"
+          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-vcube-orange to-orange-500 hover:from-orange-600 hover:to-orange-500 text-white rounded-2xl text-xs font-bold transition-all shadow-md shadow-orange-500/20 active:scale-[0.98] cursor-pointer"
         >
           <Plus className="w-4 h-4" />
           <span>Conceive Video Draft</span>
@@ -143,9 +143,9 @@ export const DraftsPage = () => {
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`px-4 py-2.5 text-xs font-bold whitespace-nowrap transition-colors border-b-2 -mb-px ${
+            className={`px-4 py-2.5 text-xs font-bold whitespace-nowrap transition-colors border-b-2 -mb-px cursor-pointer ${
               activeTab === tab.id
-                ? 'border-blue-600 text-blue-700 bg-blue-50/50'
+                ? 'border-vcube-orange text-vcube-orange bg-orange-50/40'
                 : 'border-transparent text-slate-500 hover:text-slate-800 hover:border-slate-300'
             }`}
           >
@@ -155,15 +155,15 @@ export const DraftsPage = () => {
       </div>
 
       {/* Filter Row */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col md:flex-row items-stretch md:items-center gap-3">
+      <div className="bg-white p-3 md:p-4 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col md:flex-row items-stretch md:items-center gap-2.5">
         <form onSubmit={handleSearchSubmit} className="flex-1 relative">
           <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search by title, project code, course or creator..."
-            className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-blue-600 font-medium"
+            placeholder="Search by title, code, course or creator..."
+            className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-orange-500 font-medium"
           />
         </form>
 
@@ -172,7 +172,7 @@ export const DraftsPage = () => {
           <select
             value={selectedCourse}
             onChange={(e) => setSelectedCourse(e.target.value)}
-            className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-blue-600 font-medium text-slate-700"
+            className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-orange-500 font-medium text-slate-700"
           >
             <option value="">All Courses</option>
             {courses.map((c) => (
@@ -186,7 +186,7 @@ export const DraftsPage = () => {
           <select
             value={selectedCategory}
             onChange={(e) => setSelectedCategory(e.target.value)}
-            className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-blue-600 font-medium text-slate-700"
+            className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-orange-500 font-medium text-slate-700"
           >
             <option value="">All Categories</option>
             <option value="PROJECT_EXPLANATION">Project Explanation</option>
@@ -203,7 +203,7 @@ export const DraftsPage = () => {
           <select
             value={selectedPriority}
             onChange={(e) => setSelectedPriority(e.target.value)}
-            className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-blue-600 font-medium text-slate-700"
+            className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-orange-500 font-medium text-slate-700"
           >
             <option value="">All Priorities</option>
             <option value="LOW">Low</option>
@@ -220,7 +220,7 @@ export const DraftsPage = () => {
                 setSelectedCategory('');
                 setSelectedPriority('');
               }}
-              className="px-3 py-2 text-xs font-bold text-slate-500 hover:text-slate-800"
+              className="px-3 py-2 text-xs font-bold text-slate-500 hover:text-slate-800 cursor-pointer"
             >
               Reset
             </button>
@@ -232,8 +232,8 @@ export const DraftsPage = () => {
       {loading ? (
         <LoadingSpinner text="Synchronizing video drafts catalog..." />
       ) : drafts.length === 0 ? (
-        <div className="text-center py-16 bg-white rounded-3xl border border-slate-200/80 shadow-sm p-8 space-y-3">
-          <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mx-auto">
+        <div className="text-center py-16 bg-white rounded-3xl border border-slate-200/80 shadow-xs p-8 space-y-3">
+          <div className="w-12 h-12 bg-orange-50 text-vcube-orange rounded-2xl flex items-center justify-center mx-auto">
             <Film className="w-6 h-6" />
           </div>
           <h3 className="text-sm font-bold text-slate-900">No Video Drafts in this View</h3>
@@ -242,13 +242,13 @@ export const DraftsPage = () => {
           </p>
           <button
             onClick={() => setCreateModalOpen(true)}
-            className="mt-2 inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-colors"
+            className="mt-2 inline-flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-vcube-orange to-orange-500 hover:from-orange-600 hover:to-orange-500 text-white rounded-xl text-xs font-bold transition-colors cursor-pointer"
           >
             <Plus className="w-4 h-4" /> Conceive First Draft
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5">
           {drafts.map((draft) => {
             const isCreator = draft.created_by === user?.id;
             const canEdit = isCreator || isManager;
@@ -257,12 +257,12 @@ export const DraftsPage = () => {
             return (
               <div
                 key={draft.id}
-                className="bg-white rounded-3xl border border-slate-200/80 shadow-sm hover:shadow-md transition-all duration-200 flex flex-col justify-between overflow-hidden group"
+                className="bg-white rounded-3xl border border-slate-200/90 shadow-xs hover:shadow-md hover:border-orange-200 transition-all duration-200 flex flex-col justify-between overflow-hidden group"
               >
                 {/* Card Top */}
                 <div className="p-5 space-y-3">
                   <div className="flex items-center justify-between gap-2">
-                    <span className="px-2.5 py-0.5 rounded-lg bg-blue-100 text-blue-800 font-extrabold text-[10px] tracking-wide uppercase">
+                    <span className="px-2.5 py-0.5 rounded-lg bg-orange-100 text-orange-900 font-extrabold text-[10px] tracking-wide uppercase font-mono">
                       {draft.course_name}
                     </span>
                     <div className="flex items-center gap-1.5">
@@ -272,10 +272,10 @@ export const DraftsPage = () => {
                   </div>
 
                   <div>
-                    <span className="text-[10px] font-mono font-bold text-slate-400 block mb-0.5">
+                    <span className="text-[10px] font-mono font-bold text-vcube-orange block mb-0.5">
                       {draft.project_code}
                     </span>
-                    <h3 className="text-sm font-bold text-slate-900 line-clamp-2 group-hover:text-blue-600 transition-colors">
+                    <h3 className="text-sm font-bold text-slate-900 line-clamp-2 group-hover:text-vcube-orange transition-colors">
                       {draft.title}
                     </h3>
                     <p className="text-[11px] text-slate-500 line-clamp-2 mt-1">
@@ -327,10 +327,10 @@ export const DraftsPage = () => {
                           setEditModalOpen(true);
                         }}
                         disabled={isSubmitted && !isManager}
-                        className="p-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-200/60 rounded-lg transition-colors disabled:opacity-40"
+                        className="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-200/60 rounded-xl transition-colors disabled:opacity-40 cursor-pointer"
                         title={isSubmitted && !isManager ? 'Draft locked after submission' : 'Edit Draft'}
                       >
-                        <Edit2 className="w-4 h-4" />
+                        <Edit2 className="w-3.5 h-3.5" />
                       </button>
                     ) : (
                       <span title="Read-only: Only creator can edit">
@@ -342,7 +342,7 @@ export const DraftsPage = () => {
                     {!isSubmitted && canEdit && (
                       <button
                         onClick={() => handleSubmitForContent(draft)}
-                        className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-lg text-[10px] font-bold flex items-center gap-1 transition-colors"
+                        className="px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-xl text-[10px] font-bold flex items-center gap-1 transition-colors cursor-pointer"
                       >
                         <Send className="w-3 h-3" />
                         <span>Submit for Script</span>
@@ -350,8 +350,8 @@ export const DraftsPage = () => {
                     )}
 
                     {isSubmitted && (
-                      <span className="text-[10px] font-bold text-blue-700 bg-blue-100 px-2 py-0.5 rounded-md flex items-center gap-1">
-                        <FileText className="w-3 h-3" /> Scripting Active
+                      <span className="text-[10px] font-bold text-orange-800 bg-orange-100 px-2 py-0.5 rounded-md flex items-center gap-1">
+                        <FileText className="w-3 h-3 text-vcube-orange" /> Scripting Active
                       </span>
                     )}
                   </div>
@@ -359,7 +359,7 @@ export const DraftsPage = () => {
                   {/* Open Project Workspace */}
                   <button
                     onClick={() => navigate(`/projects/${draft.id}`)}
-                    className="inline-flex items-center gap-1 px-3 py-1.5 bg-slate-900 hover:bg-blue-600 text-white rounded-xl text-xs font-bold transition-colors"
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-neutral-900 hover:bg-vcube-orange text-white rounded-xl text-xs font-bold transition-all shadow-2xs active:scale-[0.98] cursor-pointer"
                   >
                     <span>Workspace</span>
                     <ArrowRight className="w-3.5 h-3.5" />

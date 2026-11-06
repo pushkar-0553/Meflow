@@ -29,12 +29,28 @@ const completeInviteSchema = z.object({
 });
 
 const forgotPasswordSchema = z.object({
-  email: z.string().email('Invalid email format'),
+  email: z.string().email('Invalid email address format'),
+  phone: z.string().min(4, 'Registered phone number is required'),
+});
+
+const verifyResetOtpSchema = z.object({
+  email: z.string().email('Invalid email address format'),
+  otp: z.string().length(6, 'Verification code must be 6 digits'),
+});
+
+const resendResetOtpSchema = z.object({
+  email: z.string().email('Invalid email address format'),
 });
 
 const resetPasswordSchema = z.object({
   token: z.string().min(10, 'Reset token is required'),
-  password: z.string().min(8, 'Password must be at least 8 characters'),
+  password: z
+    .string()
+    .min(8, 'Password must be at least 8 characters')
+    .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
+    .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
+    .regex(/[0-9]/, 'Password must contain at least one number')
+    .regex(/[^A-Za-z0-9]/, 'Password must contain at least one special character'),
 });
 
 export const authController = {
@@ -531,39 +547,267 @@ export const authController = {
 
   /**
    * POST /api/auth/forgot-password
+   * Step 1 & 2: Account Verification via Registered Email & Registered Phone
+   * Dispatches 6-digit OTP to the registered email via Brevo
    */
   async forgotPassword(req, res, next) {
     try {
-      const { email } = forgotPasswordSchema.parse(req.body);
+      const { email, phone } = forgotPasswordSchema.parse(req.body);
 
-      const users = await query(`SELECT id, name, email FROM users WHERE LOWER(email) = LOWER(?)`, [email.trim()]);
-      if (!users || users.length === 0) {
+      const users = await query(
+        `SELECT id, name, email, phone, status FROM users WHERE LOWER(email) = LOWER(?)`,
+        [email.trim()]
+      );
+
+      // Helper to mask email for safe UI display
+      const maskEmail = (em) => {
+        if (!em || !em.includes('@')) return 'your email';
+        const [local, domain] = em.split('@');
+        const visible = local.length > 2 ? local[0] + '***' + local[local.length - 1] : local[0] + '***';
+        const domainParts = domain.split('.');
+        const maskedDomain = domainParts[0][0] + '***.' + domainParts.slice(1).join('.');
+        return `${visible}@${maskedDomain}`;
+      };
+
+      // Helper to clean phone numbers for flexible matching
+      const cleanDigits = (num) => (num ? num.replace(/\D/g, '') : '');
+
+      if (!users || users.length === 0 || users[0].status !== 'ACTIVE') {
         // Return generic success to prevent email enumeration attacks
         return successResponse(res, {
-          message: 'If an account exists with this email, a password reset link has been dispatched.',
+          message: 'If the account details match our records, a 6-digit verification code has been dispatched to your registered email.',
+          data: {
+            maskedEmail: maskEmail(email),
+            expiresInSeconds: 300,
+          },
         });
       }
 
       const user = users[0];
-      const rawToken = crypto.randomBytes(32).toString('hex');
-      const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
-      const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 Hour
+      const userPhoneDigits = cleanDigits(user.phone);
+      const inputPhoneDigits = cleanDigits(phone);
 
+      // Verify that phone matches the registered user record
+      const isPhoneMatch =
+        userPhoneDigits.length >= 7 &&
+        inputPhoneDigits.length >= 7 &&
+        (userPhoneDigits.endsWith(inputPhoneDigits) || inputPhoneDigits.endsWith(userPhoneDigits));
+
+      if (!isPhoneMatch) {
+        // Return generic success to prevent phone enumeration attacks
+        return successResponse(res, {
+          message: 'If the account details match our records, a 6-digit verification code has been dispatched to your registered email.',
+          data: {
+            maskedEmail: maskEmail(user.email),
+            expiresInSeconds: 300,
+          },
+        });
+      }
+
+      // Invalidate existing unverified OTPs for this user
       await query(
-        `INSERT INTO password_reset_tokens (user_id, token_hash, expires_at) VALUES (?, ?, ?)`,
-        [user.id, tokenHash, expiresAt]
+        `UPDATE password_reset_otps SET verified_at = NOW() WHERE user_id = ? AND verified_at IS NULL`,
+        [user.id]
       );
 
-      const resetUrl = `${env.FRONTEND_URL}/reset-password?token=${rawToken}`;
-      await emailService.sendPasswordResetEmail({
+      // Generate cryptographically random 6-digit OTP
+      const otp = String(crypto.randomInt(100000, 1000000));
+      const otpHash = crypto.createHash('sha256').update(otp).digest('hex');
+      const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 Minutes
+
+      await query(
+        `INSERT INTO password_reset_otps (user_id, otp_hash, attempts_left, expires_at)
+         VALUES (?, ?, 5, ?)`,
+        [user.id, otpHash, expiresAt]
+      );
+
+      // Dispatch OTP email via Brevo
+      await emailService.sendResetOtpEmail({
         to: user.email,
         name: user.name,
-        resetUrl,
+        otp,
       });
 
       return successResponse(res, {
-        message: 'If an account exists with this email, a password reset link has been dispatched.',
-        data: env.isDev ? { resetUrl } : null,
+        message: 'If the account details match our records, a 6-digit verification code has been dispatched to your registered email.',
+        data: {
+          maskedEmail: maskEmail(user.email),
+          expiresInSeconds: 300,
+          otp: env.isDev ? otp : undefined,
+        },
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  /**
+   * POST /api/auth/verify-reset-otp
+   * Step 3: Validate 6-digit OTP with rate limiting & generate short-lived Reset Authorization Token
+   */
+  async verifyResetOtp(req, res, next) {
+    try {
+      const { email, otp } = verifyResetOtpSchema.parse(req.body);
+
+      const users = await query(
+        `SELECT id, name, email, status FROM users WHERE LOWER(email) = LOWER(?)`,
+        [email.trim()]
+      );
+
+      if (!users || users.length === 0 || users[0].status !== 'ACTIVE') {
+        return errorResponse(res, {
+          statusCode: 400,
+          code: 'INVALID_OTP',
+          message: 'Invalid or expired verification code.',
+        });
+      }
+
+      const user = users[0];
+      const records = await query(
+        `SELECT id, user_id, otp_hash, attempts_left, expires_at, verified_at
+         FROM password_reset_otps
+         WHERE user_id = ? AND verified_at IS NULL
+         ORDER BY id DESC
+         LIMIT 1`,
+        [user.id]
+      );
+
+      if (!records || records.length === 0) {
+        return errorResponse(res, {
+          statusCode: 400,
+          code: 'OTP_NOT_FOUND',
+          message: 'No active verification request found. Please request a new code.',
+        });
+      }
+
+      const record = records[0];
+
+      if (record.attempts_left <= 0) {
+        await query(`UPDATE password_reset_otps SET verified_at = NOW() WHERE id = ?`, [record.id]);
+        return errorResponse(res, {
+          statusCode: 400,
+          code: 'MAX_ATTEMPTS_EXCEEDED',
+          message: 'Maximum verification attempts exceeded. Please request a new code.',
+        });
+      }
+
+      if (new Date() > new Date(record.expires_at)) {
+        await query(`UPDATE password_reset_otps SET verified_at = NOW() WHERE id = ?`, [record.id]);
+        return errorResponse(res, {
+          statusCode: 400,
+          code: 'OTP_EXPIRED',
+          message: 'Verification code has expired. Please request a new code.',
+        });
+      }
+
+      const incomingOtpHash = crypto.createHash('sha256').update(otp.trim()).digest('hex');
+      const expectedHashBuffer = Buffer.from(record.otp_hash);
+      const incomingHashBuffer = Buffer.from(incomingOtpHash);
+
+      const isMatch =
+        expectedHashBuffer.length === incomingHashBuffer.length &&
+        crypto.timingSafeEqual(expectedHashBuffer, incomingHashBuffer);
+
+      if (!isMatch) {
+        const remaining = record.attempts_left - 1;
+        await query(`UPDATE password_reset_otps SET attempts_left = ? WHERE id = ?`, [remaining, record.id]);
+        return errorResponse(res, {
+          statusCode: 400,
+          code: 'INVALID_OTP',
+          message: remaining > 0
+            ? `Incorrect verification code. ${remaining} attempts remaining.`
+            : 'Incorrect verification code. Maximum attempts exceeded. Please request a new code.',
+        });
+      }
+
+      // Mark OTP as verified
+      await query(`UPDATE password_reset_otps SET verified_at = NOW() WHERE id = ?`, [record.id]);
+
+      // Generate secure single-use password reset authorization token
+      const rawResetToken = crypto.randomBytes(32).toString('hex');
+      const tokenHash = crypto.createHash('sha256').update(rawResetToken).digest('hex');
+      const resetExpiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 Minutes
+
+      await query(
+        `INSERT INTO password_reset_tokens (user_id, token_hash, expires_at) VALUES (?, ?, ?)`,
+        [user.id, tokenHash, resetExpiresAt]
+      );
+
+      return successResponse(res, {
+        message: 'Identity verified successfully. You may now set your new password.',
+        data: {
+          resetToken: rawResetToken,
+        },
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  /**
+   * POST /api/auth/resend-reset-otp
+   * Resend OTP with 45-second anti-abuse cooldown
+   */
+  async resendResetOtp(req, res, next) {
+    try {
+      const { email } = resendResetOtpSchema.parse(req.body);
+
+      const users = await query(
+        `SELECT id, name, email, phone, status FROM users WHERE LOWER(email) = LOWER(?)`,
+        [email.trim()]
+      );
+
+      if (!users || users.length === 0 || users[0].status !== 'ACTIVE') {
+        return successResponse(res, {
+          message: 'If the account exists, a new verification code has been dispatched.',
+        });
+      }
+
+      const user = users[0];
+
+      // Anti-abuse: 45-second cooldown
+      const recent = await query(
+        `SELECT created_at FROM password_reset_otps
+         WHERE user_id = ? AND created_at > (NOW() - INTERVAL 45 SECOND)
+         ORDER BY id DESC LIMIT 1`,
+        [user.id]
+      );
+
+      if (recent && recent.length > 0) {
+        return errorResponse(res, {
+          statusCode: 429,
+          code: 'RATE_LIMIT_COOLDOWN',
+          message: 'Please wait 45 seconds before requesting another verification code.',
+        });
+      }
+
+      // Invalidate previous OTPs
+      await query(
+        `UPDATE password_reset_otps SET verified_at = NOW() WHERE user_id = ? AND verified_at IS NULL`,
+        [user.id]
+      );
+
+      const otp = String(crypto.randomInt(100000, 1000000));
+      const otpHash = crypto.createHash('sha256').update(otp).digest('hex');
+      const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+
+      await query(
+        `INSERT INTO password_reset_otps (user_id, otp_hash, attempts_left, expires_at) VALUES (?, ?, 5, ?)`,
+        [user.id, otpHash, expiresAt]
+      );
+
+      await emailService.sendResetOtpEmail({
+        to: user.email,
+        name: user.name,
+        otp,
+      });
+
+      return successResponse(res, {
+        message: 'A new 6-digit verification code has been dispatched to your email.',
+        data: {
+          expiresInSeconds: 300,
+          otp: env.isDev ? otp : undefined,
+        },
       });
     } catch (error) {
       next(error);
@@ -572,6 +816,7 @@ export const authController = {
 
   /**
    * POST /api/auth/reset-password
+   * Step 4: Set new password with complexity enforcement & invalidate sessions
    */
   async resetPassword(req, res, next) {
     try {
@@ -587,7 +832,7 @@ export const authController = {
         return errorResponse(res, {
           statusCode: 400,
           code: 'INVALID_TOKEN',
-          message: 'Password reset link is invalid.',
+          message: 'Password reset session is invalid or has expired.',
         });
       }
 
@@ -596,24 +841,41 @@ export const authController = {
         return errorResponse(res, {
           statusCode: 400,
           code: 'TOKEN_EXPIRED',
-          message: 'Password reset link has expired or has already been used.',
+          message: 'Password reset authorization has expired or has already been used.',
         });
       }
 
       const passwordHash = await bcrypt.hash(password, 12);
 
       await transaction(async (conn) => {
+        // 1. Update password
         await conn.query(`UPDATE users SET password_hash = ? WHERE id = ?`, [passwordHash, record.user_id]);
+
+        // 2. Consume reset authorization token
         await conn.query(`UPDATE password_reset_tokens SET used_at = NOW() WHERE id = ?`, [record.id]);
-        // Terminate any existing sessions for this user for security
+
+        // 3. Invalidate any outstanding OTPs for this user
+        await conn.query(
+          `UPDATE password_reset_otps SET verified_at = NOW() WHERE user_id = ? AND verified_at IS NULL`,
+          [record.user_id]
+        );
+
+        // 4. Invalidate active sessions
         await conn.query(
           `DELETE FROM sessions WHERE JSON_EXTRACT(sess, '$.user.id') = ?`,
           [record.user_id]
         );
+
+        // 5. Audit log
+        await conn.query(
+          `INSERT INTO activity_logs (actor_id, action, entity, entity_id, ip_address)
+           VALUES (?, 'PASSWORD_RESET', 'USER', ?, ?)`,
+          [record.user_id, record.user_id, req.ip]
+        );
       });
 
       return successResponse(res, {
-        message: 'Password has been reset successfully. Please sign in with your new password.',
+        message: 'Your password has been changed successfully. Please log in with your new password.',
       });
     } catch (error) {
       next(error);

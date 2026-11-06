@@ -778,7 +778,7 @@ export const ProjectDetailPage = () => {
   const currentStageIndex = STAGES.findIndex((s) => s.key === project.current_stage);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6 pb-24 md:pb-8 max-w-7xl mx-auto">
       {/* Top Bar */}
       <div className="flex items-center justify-between">
         <button
@@ -810,11 +810,11 @@ export const ProjectDetailPage = () => {
       </div>
 
       {/* Master Project Header Card */}
-      <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-sm space-y-5">
+      <div className="bg-white rounded-3xl p-5 md:p-6 border border-slate-200/90 shadow-xs space-y-4 md:space-y-5">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <span className="font-mono text-xs font-extrabold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md">
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="font-mono text-xs font-extrabold text-vcube-orange bg-orange-50 border border-orange-200/80 px-2.5 py-0.5 rounded-lg">
                 {project.project_code}
               </span>
               <span className="text-xs font-bold px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 uppercase">
@@ -822,7 +822,7 @@ export const ProjectDetailPage = () => {
               </span>
               <StatusBadge status={project.priority} />
             </div>
-            <h1 className="text-xl font-black text-slate-900 tracking-tight">{project.title}</h1>
+            <h1 className="text-lg md:text-xl font-black text-slate-900 tracking-tight">{project.title}</h1>
             <p className="text-xs text-slate-500 max-w-2xl">
               {project.description || 'No detailed brief added.'}
             </p>
@@ -841,7 +841,7 @@ export const ProjectDetailPage = () => {
         </div>
 
         {/* 8-Stage Visual Pipeline Stepper */}
-        <div className="pt-4 border-t border-slate-100">
+        <div className="pt-3 border-t border-slate-100">
           <div className="grid grid-cols-4 md:grid-cols-8 gap-1.5">
             {STAGES.map((stg, idx) => {
               const isPast = idx < currentStageIndex;
@@ -852,7 +852,7 @@ export const ProjectDetailPage = () => {
                   key={stg.key}
                   className={`px-2 py-2 rounded-xl text-center border transition-all ${
                     isCurrent
-                      ? 'bg-blue-600 text-white border-blue-600 font-bold shadow-sm shadow-blue-500/20'
+                      ? 'bg-gradient-to-r from-vcube-orange to-orange-500 text-white border-vcube-orange font-bold shadow-sm shadow-orange-500/20'
                       : isPast
                       ? 'bg-emerald-50 text-emerald-800 border-emerald-200/80 font-bold'
                       : 'bg-slate-50 text-slate-400 border-slate-200/60 font-medium'
@@ -883,9 +883,9 @@ export const ProjectDetailPage = () => {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold whitespace-nowrap transition-colors border-b-2 -mb-px ${
+              className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold whitespace-nowrap transition-colors border-b-2 -mb-px cursor-pointer ${
                 activeTab === tab.id
-                  ? 'border-blue-600 text-blue-700 bg-blue-50/50'
+                  ? 'border-vcube-orange text-vcube-orange bg-orange-50/50'
                   : 'border-transparent text-slate-500 hover:text-slate-800 hover:border-slate-300'
               }`}
             >
