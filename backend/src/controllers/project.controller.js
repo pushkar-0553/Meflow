@@ -303,8 +303,8 @@ export const projectController = {
       const projects = await query(
         `SELECT vp.*,
                 c.id AS course_id, c.code AS course_code, c.name AS course_name,
-                u.name AS creator_name, u.email AS creator_email, u.department AS creator_department,
-                anc.name AS anchor_name, anc.email AS anchor_email
+                u.name AS creator_name, u.email AS creator_email, u.phone AS creator_phone, u.department AS creator_department,
+                anc.name AS anchor_name, anc.email AS anchor_email, anc.phone AS anchor_phone
          FROM video_projects vp
          JOIN courses c ON vp.course_id = c.id
          JOIN users u ON vp.created_by = u.id
@@ -320,9 +320,11 @@ export const projectController = {
 
       // 2. Fetch linked Content Scripting details
       const scripts = await query(
-        `SELECT cs.*, u.name AS writer_name, u.email AS writer_email
+        `SELECT cs.*, u.name AS writer_name, u.email AS writer_email, u.phone AS writer_phone,
+                r.name AS writer_role
          FROM content_scripts cs
          LEFT JOIN users u ON cs.writer_id = u.id
+         LEFT JOIN roles r ON u.role_id = r.id
          WHERE cs.video_project_id = ?`,
         [projectId]
       );
@@ -330,7 +332,8 @@ export const projectController = {
 
       // 3. Fetch Cinematography Shoot & Crew Details
       const shoots = await query(
-        `SELECT csh.*, u.name AS lead_cameraman_name, anc.name AS confirmed_anchor_name
+        `SELECT csh.*, u.name AS lead_cameraman_name, u.email AS lead_cameraman_email, u.phone AS lead_cameraman_phone,
+                anc.name AS confirmed_anchor_name, anc.email AS confirmed_anchor_email, anc.phone AS confirmed_anchor_phone
          FROM cinematography_shoots csh
          LEFT JOIN users u ON csh.lead_cinematographer_id = u.id
          LEFT JOIN users anc ON csh.anchor_id = anc.id
@@ -343,9 +346,10 @@ export const projectController = {
       let scenes = [];
       if (shoot) {
         teamMembers = await query(
-          `SELECT ctm.*, u.name, u.email
+          `SELECT ctm.*, u.name, u.email, u.phone, r.name AS role_name
            FROM cinematography_team_members ctm
            JOIN users u ON ctm.user_id = u.id
+           LEFT JOIN roles r ON u.role_id = r.id
            WHERE ctm.shoot_id = ?
            ORDER BY ctm.created_at ASC`,
           [shoot.id]
@@ -373,8 +377,8 @@ export const projectController = {
       // 4. Fetch Raw Footage Handover records
       const handovers = await query(
         `SELECT fh.*,
-                giver.name AS handed_over_by_name,
-                receiver.name AS received_by_name
+                giver.name AS handed_over_by_name, giver.email AS handed_over_by_email, giver.phone AS handed_over_by_phone,
+                receiver.name AS received_by_name, receiver.email AS received_by_email, receiver.phone AS received_by_phone
          FROM footage_handovers fh
          JOIN users giver ON fh.handed_over_by = giver.id
          LEFT JOIN users receiver ON fh.received_by = receiver.id
@@ -385,9 +389,11 @@ export const projectController = {
 
       // 5. Fetch Video Editing & Multi-Cut Versions
       const editAssignments = await query(
-        `SELECT ea.*, u.name AS editor_name, u.email AS editor_email
+        `SELECT ea.*, u.name AS editor_name, u.email AS editor_email, u.phone AS editor_phone,
+                r.name AS editor_role
          FROM editing_assignments ea
          LEFT JOIN users u ON ea.editor_id = u.id
+         LEFT JOIN roles r ON u.role_id = r.id
          WHERE ea.video_project_id = ?`,
         [projectId]
       );
@@ -398,7 +404,7 @@ export const projectController = {
         editingVersions = await query(
           `SELECT ev.*,
                   vr.decision AS review_decision, vr.review_comments, vr.reviewed_at,
-                  rev.name AS reviewer_name
+                  rev.name AS reviewer_name, rev.phone AS reviewer_phone
            FROM editing_versions ev
            LEFT JOIN video_reviews vr ON ev.id = vr.editing_version_id
            LEFT JOIN users rev ON vr.reviewer_id = rev.id
@@ -410,7 +416,7 @@ export const projectController = {
 
       // 6. Fetch Thumbnails
       const thumbnails = await query(
-        `SELECT tn.*, u.name AS designer_name
+        `SELECT tn.*, u.name AS designer_name, u.email AS designer_email, u.phone AS designer_phone
          FROM thumbnails tn
          LEFT JOIN users u ON tn.designer_id = u.id
          WHERE tn.video_project_id = ?
@@ -420,13 +426,133 @@ export const projectController = {
 
       // 7. Fetch Platform Publications (Instagram, Facebook, YouTube)
       const publications = await query(
-        `SELECT pp.*, u.name AS publisher_name
+        `SELECT pp.*, u.name AS publisher_name, u.email AS publisher_email, u.phone AS publisher_phone
          FROM platform_publications pp
          LEFT JOIN users u ON pp.published_by = u.id
          WHERE pp.video_project_id = ?
          ORDER BY pp.platform ASC`,
         [projectId]
       );
+
+      // 8. Construct Unified Production Team Directory for Quick Calling (Part 5.2)
+      const teamMap = new Map();
+
+      // Concept Creator
+      if (project.created_by) {
+        teamMap.set(`user_${project.created_by}_concept`, {
+          userId: project.created_by,
+          name: project.creator_name,
+          email: project.creator_email,
+          phone: project.creator_phone,
+          role: 'Concept Creator',
+          assignment: 'Draft Conception',
+          status: project.current_stage === 'DRAFT_PLANNING' ? 'ACTIVE' : 'COMPLETED',
+        });
+      }
+
+      // Scriptwriter
+      if (script?.writer_id) {
+        teamMap.set(`user_${script.writer_id}_script`, {
+          userId: script.writer_id,
+          name: script.writer_name,
+          email: script.writer_email,
+          phone: script.writer_phone,
+          role: script.writer_role || 'Content Writer',
+          assignment: 'Script & Storyboard',
+          status: script.status,
+        });
+      }
+
+      // Lead Cinematographer
+      if (shoot?.lead_cinematographer_id) {
+        teamMap.set(`user_${shoot.lead_cinematographer_id}_cam`, {
+          userId: shoot.lead_cinematographer_id,
+          name: shoot.lead_cameraman_name,
+          email: shoot.lead_cameraman_email,
+          phone: shoot.lead_cameraman_phone,
+          role: 'Lead Cinematographer',
+          assignment: 'Camera & Lighting Shoot',
+          status: shoot.status,
+        });
+      }
+
+      // Anchor / Talent
+      const anchorUser = (shoot?.anchor_id && shoot.confirmed_anchor_name)
+        ? { id: shoot.anchor_id, name: shoot.confirmed_anchor_name, email: shoot.confirmed_anchor_email, phone: shoot.confirmed_anchor_phone }
+        : (project.tentative_anchor_id ? { id: project.tentative_anchor_id, name: project.anchor_name, email: project.anchor_email, phone: project.anchor_phone } : null);
+
+      if (anchorUser && anchorUser.id) {
+        teamMap.set(`user_${anchorUser.id}_anchor`, {
+          userId: anchorUser.id,
+          name: anchorUser.name,
+          email: anchorUser.email,
+          phone: anchorUser.phone,
+          role: 'Anchor',
+          assignment: 'On-Camera Presentation',
+          status: shoot?.status || 'SCHEDULED',
+        });
+      }
+
+      // Shoot Crew
+      if (teamMembers && teamMembers.length > 0) {
+        for (const tm of teamMembers) {
+          teamMap.set(`user_${tm.user_id}_crew_${tm.id}`, {
+            userId: tm.user_id,
+            name: tm.name,
+            email: tm.email,
+            phone: tm.phone,
+            role: tm.role_name || 'Production Crew',
+            assignment: tm.team_role ? tm.team_role.replace(/_/g, ' ') : 'Shoot Support',
+            status: shoot?.status || 'SCHEDULED',
+          });
+        }
+      }
+
+      // Video Editor
+      if (editingAssignment?.editor_id) {
+        teamMap.set(`user_${editingAssignment.editor_id}_edit`, {
+          userId: editingAssignment.editor_id,
+          name: editingAssignment.editor_name,
+          email: editingAssignment.editor_email,
+          phone: editingAssignment.editor_phone,
+          role: editingAssignment.editor_role || 'Video Editor',
+          assignment: 'Cuts, Color & Sound',
+          status: editingAssignment.status,
+        });
+      }
+
+      // Thumbnail Designer
+      if (thumbnails && thumbnails.length > 0 && thumbnails[0].designer_id) {
+        const tn = thumbnails[0];
+        teamMap.set(`user_${tn.designer_id}_thumb`, {
+          userId: tn.designer_id,
+          name: tn.designer_name,
+          email: tn.designer_email,
+          phone: tn.designer_phone,
+          role: 'Thumbnail Designer',
+          assignment: 'Thumbnail & Creatives',
+          status: tn.status,
+        });
+      }
+
+      // Publishers
+      if (publications && publications.length > 0) {
+        for (const pb of publications) {
+          if (pb.published_by) {
+            teamMap.set(`user_${pb.published_by}_pub_${pb.id}`, {
+              userId: pb.published_by,
+              name: pb.publisher_name,
+              email: pb.publisher_email,
+              phone: pb.publisher_phone,
+              role: 'SEO & Publishing',
+              assignment: `Distribution (${pb.platform})`,
+              status: pb.status,
+            });
+          }
+        }
+      }
+
+      const productionTeam = Array.from(teamMap.values());
 
       return successResponse(res, {
         message: 'Comprehensive video project workspace retrieved.',
@@ -438,6 +564,7 @@ export const projectController = {
           editing: editingAssignment ? { ...editingAssignment, versions: editingVersions } : null,
           thumbnails,
           publications,
+          production_team: productionTeam,
         },
       });
     } catch (error) {

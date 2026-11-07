@@ -14,6 +14,7 @@ import {
   ScrollText,
   Briefcase,
   Clock,
+  FileSpreadsheet,
 } from 'lucide-react';
 
 export const Sidebar = () => {
@@ -21,10 +22,12 @@ export const Sidebar = () => {
 
   const adminNav = [
     { name: 'Dashboard', to: '/admin/dashboard', icon: LayoutDashboard },
+    { name: 'Reports', to: '/admin/reports', icon: FileSpreadsheet },
+    { name: 'Employee Directory', to: '/admin/directory', icon: Users },
     { name: 'Video Drafts', to: '/admin/drafts', icon: Film, perm: 'drafts.view' },
     { name: 'Review Sign-Off', to: '/admin/reviews', icon: ShieldCheck, perm: 'approval.review' },
     { name: 'Tasks & Pipeline', to: '/admin/tasks', icon: Layers, perm: 'tasks.view' },
-    { name: 'Employees', to: '/admin/users', icon: Users, perm: 'users.view' },
+    { name: 'User Management', to: '/admin/users', icon: ShieldCheck, perm: 'users.view' },
     { name: 'Roles & Permissions', to: '/admin/roles', icon: ShieldCheck, perm: 'roles.view' },
     { name: 'Team Workload', to: '/admin/workload', icon: Briefcase, perm: 'workload.view_all' },
     { name: 'Master Calendar', to: '/admin/calendar', icon: Calendar, perm: 'calendar.view_all' },
@@ -34,6 +37,8 @@ export const Sidebar = () => {
 
   const employeeNav = [
     { name: 'My Dashboard', to: '/dashboard', icon: LayoutDashboard },
+    { name: 'Reports', to: '/reports', icon: FileSpreadsheet },
+    { name: 'Employee Directory', to: '/employees', icon: Users },
     { name: 'Video Drafts', to: '/drafts', icon: Film },
     { name: 'Available Work', to: '/available-work', icon: Sparkles },
     { name: 'My Bucket', to: '/my-bucket', icon: CheckSquare },

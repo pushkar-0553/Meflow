@@ -36,6 +36,8 @@ import shootRoutes from './routes/shoot.routes.js';
 import footageRoutes from './routes/footage.routes.js';
 import editingRoutes from './routes/editing.routes.js';
 import thumbnailRoutes from './routes/thumbnail.routes.js';
+import reportRoutes from './routes/report.routes.js';
+import employeeRoutes from './routes/employee.routes.js';
 
 const app = express();
 
@@ -136,6 +138,8 @@ app.use('/api/shoots', shootRoutes);
 app.use('/api/footage', footageRoutes);
 app.use('/api/editing', editingRoutes);
 app.use('/api/thumbnails', thumbnailRoutes);
+app.use('/api/reports', reportRoutes);
+app.use('/api/employees', employeeRoutes);
 
 // Catch-all 404 Route for API requests
 app.use('/api/*', (req, res) => {

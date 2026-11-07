@@ -518,6 +518,39 @@ const MIGRATIONS = [
     CONSTRAINT fk_ppub_publisher FOREIGN KEY (published_by) REFERENCES users(id) ON DELETE SET NULL,
     UNIQUE KEY uk_project_platform (video_project_id, platform),
     INDEX idx_ppub_platform_status (platform, status)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;`,
+
+  // 30. Dynamic Report Shares
+  `CREATE TABLE IF NOT EXISTS report_shares (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    report_name VARCHAR(150) NOT NULL,
+    share_token_hash VARCHAR(64) NOT NULL UNIQUE,
+    report_type ENUM('DAILY', 'WEEKLY', 'MONTHLY', 'ANNUAL', 'EOD') NOT NULL,
+    report_configuration JSON NOT NULL,
+    created_by INT UNSIGNED NOT NULL,
+    access_mode ENUM('AUTHENTICATED', 'PUBLIC_LINK') NOT NULL DEFAULT 'PUBLIC_LINK',
+    include_contact_details BOOLEAN NOT NULL DEFAULT FALSE,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    expires_at TIMESTAMP NULL,
+    revoked_at TIMESTAMP NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_rs_creator FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE CASCADE,
+    INDEX idx_rs_token (share_token_hash),
+    INDEX idx_rs_active (is_active)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;`,
+
+  // 31. Report Share Access Logs
+  `CREATE TABLE IF NOT EXISTS report_share_access_logs (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    report_share_id INT UNSIGNED NOT NULL,
+    viewer_user_id INT UNSIGNED NULL,
+    ip_address VARCHAR(45) NULL,
+    user_agent VARCHAR(255) NULL,
+    accessed_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_rsal_share FOREIGN KEY (report_share_id) REFERENCES report_shares(id) ON DELETE CASCADE,
+    CONSTRAINT fk_rsal_user FOREIGN KEY (viewer_user_id) REFERENCES users(id) ON DELETE SET NULL,
+    INDEX idx_rsal_share (report_share_id, accessed_at)
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;`
 ];
 
@@ -530,6 +563,36 @@ export async function runMigrations() {
       const sql = MIGRATIONS[i];
       await connection.query(sql);
     }
+
+    // Check and add employee directory columns to users table
+    const [empCol] = await connection.query(`SHOW COLUMNS FROM users LIKE 'employee_id'`);
+    if (!empCol || empCol.length === 0) {
+      await connection.query(`ALTER TABLE users ADD COLUMN employee_id VARCHAR(50) NULL AFTER name`);
+      logger.info("Added 'employee_id' column to users table.");
+    }
+
+    const [mgrCol] = await connection.query(`SHOW COLUMNS FROM users LIKE 'reporting_manager_id'`);
+    if (!mgrCol || mgrCol.length === 0) {
+      await connection.query(`ALTER TABLE users ADD COLUMN reporting_manager_id INT UNSIGNED NULL AFTER department`);
+      logger.info("Added 'reporting_manager_id' column to users table.");
+    }
+
+    // Add index on employee_id if not present
+    const [empIdx] = await connection.query(`SHOW INDEX FROM users WHERE Key_name = 'idx_users_employee_id'`);
+    if (!empIdx || empIdx.length === 0) {
+      await connection.query(`ALTER TABLE users ADD INDEX idx_users_employee_id (employee_id)`);
+    }
+
+    // Backfill employee_id for any existing accounts
+    const [usersWithoutEmpId] = await connection.query(
+      `SELECT id FROM users WHERE employee_id IS NULL ORDER BY id ASC`
+    );
+    for (let i = 0; i < usersWithoutEmpId.length; i++) {
+      const uId = usersWithoutEmpId[i].id;
+      const empCode = `VME-${String(i + 1).padStart(3, '0')}`;
+      await connection.query(`UPDATE users SET employee_id = ? WHERE id = ?`, [empCode, uId]);
+    }
+
     logger.success(`Database migrations completed successfully (${MIGRATIONS.length} tables verified/created).`);
     return { success: true, count: MIGRATIONS.length };
   } catch (error) {

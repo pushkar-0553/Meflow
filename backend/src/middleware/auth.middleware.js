@@ -89,6 +89,63 @@ export async function requireAuth(req, res, next) {
 }
 
 /**
+ * Optional authentication: populates req.user if valid token/session exists,
+ * but allows request to proceed unauthenticated if absent.
+ */
+export async function optionalAuth(req, res, next) {
+  let userId = req.session?.user?.id;
+  if (!userId) {
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.split(' ')[1];
+      const decoded = verifyToken(token);
+      if (decoded && decoded.id) {
+        userId = decoded.id;
+      }
+    }
+  }
+
+  if (!userId) {
+    return next();
+  }
+
+  try {
+    const users = await query(
+      `SELECT u.id, u.role_id, u.name, u.email, u.department, u.status, u.profile_image_url,
+              r.name AS role_name, r.code AS role_code, r.is_system_admin
+       FROM users u
+       JOIN roles r ON u.role_id = r.id
+       WHERE u.id = ? AND u.status = 'ACTIVE'`,
+      [userId]
+    );
+
+    if (users && users.length > 0) {
+      const currentUser = users[0];
+      req.user = {
+        id: currentUser.id,
+        name: currentUser.name,
+        email: currentUser.email,
+        department: currentUser.department,
+        role_id: currentUser.role_id,
+        role_code: currentUser.role_code,
+        role_name: currentUser.role_name,
+        is_system_admin: Boolean(currentUser.is_system_admin),
+        profile_image_url: currentUser.profile_image_url,
+        role: {
+          id: currentUser.role_id,
+          code: currentUser.role_code,
+          name: currentUser.role_name,
+          is_system_admin: Boolean(currentUser.is_system_admin),
+        },
+      };
+    }
+    next();
+  } catch {
+    next();
+  }
+}
+
+/**
  * Middleware ensuring user has system administrator privileges
  */
 export function requireAdmin(req, res, next) {

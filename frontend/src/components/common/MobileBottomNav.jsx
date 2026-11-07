@@ -17,6 +17,7 @@ import {
   LogOut,
   User,
   ExternalLink,
+  FileSpreadsheet,
 } from 'lucide-react';
 
 export const MobileBottomNav = () => {
@@ -142,6 +143,22 @@ export const MobileBottomNav = () => {
                     Management Controls
                   </div>
                   <NavLink
+                    to="/admin/reports"
+                    onClick={() => setMoreOpen(false)}
+                    className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold text-[#242424] hover:bg-[#F8F8F7] active:bg-[#FFF7ED]"
+                  >
+                    <FileSpreadsheet className="w-4 h-4 text-[#FF6B00]" />
+                    <span>Dynamic Reports Engine</span>
+                  </NavLink>
+                  <NavLink
+                    to="/admin/directory"
+                    onClick={() => setMoreOpen(false)}
+                    className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold text-[#242424] hover:bg-[#F8F8F7] active:bg-[#FFF7ED]"
+                  >
+                    <Users className="w-4 h-4 text-[#FF6B00]" />
+                    <span>Employee Workforce Directory</span>
+                  </NavLink>
+                  <NavLink
                     to="/admin/reviews"
                     onClick={() => setMoreOpen(false)}
                     className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold text-[#242424] hover:bg-[#F8F8F7] active:bg-[#FFF7ED]"
@@ -155,7 +172,7 @@ export const MobileBottomNav = () => {
                     className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold text-[#242424] hover:bg-[#F8F8F7] active:bg-[#FFF7ED]"
                   >
                     <Users className="w-4 h-4 text-[#FF6B00]" />
-                    <span>Employee Workforce Directory</span>
+                    <span>User Account Administration</span>
                   </NavLink>
                   <NavLink
                     to="/admin/roles"
@@ -195,6 +212,22 @@ export const MobileBottomNav = () => {
                   <div className="text-[10px] font-extrabold uppercase tracking-wider text-[#A3A3A3] px-3 mb-1">
                     Worker Channels
                   </div>
+                  <NavLink
+                    to="/reports"
+                    onClick={() => setMoreOpen(false)}
+                    className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold text-[#242424] hover:bg-[#F8F8F7] active:bg-[#FFF7ED]"
+                  >
+                    <FileSpreadsheet className="w-4 h-4 text-[#FF6B00]" />
+                    <span>Production & EOD Reports</span>
+                  </NavLink>
+                  <NavLink
+                    to="/employees"
+                    onClick={() => setMoreOpen(false)}
+                    className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold text-[#242424] hover:bg-[#F8F8F7] active:bg-[#FFF7ED]"
+                  >
+                    <Users className="w-4 h-4 text-[#FF6B00]" />
+                    <span>Employee Directory & Contacts</span>
+                  </NavLink>
                   <NavLink
                     to="/available-work"
                     onClick={() => setMoreOpen(false)}

@@ -24,6 +24,10 @@ import { PublishingArchivePage } from './pages/PublishingArchivePage';
 import { AuditLedgerPage } from './pages/AuditLedgerPage';
 import { DraftsPage } from './pages/DraftsPage';
 import { ProjectDetailPage } from './pages/ProjectDetailPage';
+import { ReportsPage } from './pages/ReportsPage';
+import { EmployeeDirectoryPage } from './pages/EmployeeDirectoryPage';
+import { EmployeeDetailPage } from './pages/EmployeeDetailPage';
+import { SharedReportPage } from './pages/SharedReportPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 
 // Smart Home Redirector based on User Role
@@ -43,6 +47,7 @@ export function App() {
             {/* Public Auth Routes */}
             <Route path="/login" element={<LoginPage />} />
             <Route path="/set-password" element={<SetPasswordPage />} />
+            <Route path="/shared-report/:token" element={<SharedReportPage />} />
 
             {/* Smart Root Redirect */}
             <Route path="/" element={<HomeRedirect />} />
@@ -51,6 +56,9 @@ export function App() {
             <Route path="/admin" element={<AdminLayout />}>
               <Route index element={<Navigate to="/admin/dashboard" replace />} />
               <Route path="dashboard" element={<AdminDashboardPage />} />
+              <Route path="reports" element={<ReportsPage />} />
+              <Route path="directory" element={<EmployeeDirectoryPage />} />
+              <Route path="directory/:id" element={<EmployeeDetailPage />} />
               <Route path="drafts" element={<DraftsPage />} />
               <Route path="projects/:id" element={<ProjectDetailPage />} />
               <Route path="reviews" element={<PendingReviewsPage />} />
@@ -68,6 +76,9 @@ export function App() {
             {/* Employee Workspace Routes */}
             <Route element={<EmployeeLayout />}>
               <Route path="/dashboard" element={<EmployeeDashboardPage />} />
+              <Route path="/reports" element={<ReportsPage />} />
+              <Route path="/employees" element={<EmployeeDirectoryPage />} />
+              <Route path="/employees/:id" element={<EmployeeDetailPage />} />
               <Route path="/drafts" element={<DraftsPage />} />
               <Route path="/projects/:id" element={<ProjectDetailPage />} />
               <Route path="/available-work" element={<AvailableWorkPage />} />
