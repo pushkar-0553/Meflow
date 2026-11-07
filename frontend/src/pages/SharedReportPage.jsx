@@ -19,6 +19,11 @@ import {
   ExternalLink,
   Flame,
   Check,
+  ChevronDown,
+  ChevronUp,
+  BarChart3,
+  Layers,
+  FileSpreadsheet,
 } from 'lucide-react';
 
 export const SharedReportPage = () => {
@@ -29,6 +34,7 @@ export const SharedReportPage = () => {
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [countdown, setCountdown] = useState(30);
   const [refreshing, setRefreshing] = useState(false);
+  const [expandedEmployees, setExpandedEmployees] = useState(new Set());
 
   const timerRef = useRef(null);
 
@@ -70,6 +76,15 @@ export const SharedReportPage = () => {
     return () => clearInterval(timerRef.current);
   }, [autoRefresh, error, token]);
 
+  const toggleEmployeeExpand = (empId) => {
+    setExpandedEmployees((prev) => {
+      const next = new Set(prev);
+      if (next.has(empId)) next.delete(empId);
+      else next.add(empId);
+      return next;
+    });
+  };
+
   if (loading) {
     return <LoadingSpinner text="Synchronizing live shared report from database..." />;
   }
@@ -100,6 +115,11 @@ export const SharedReportPage = () => {
     summary = {},
     byEmployee = [],
     assignments = [],
+    monthlyTrends = [],
+    stageBreakdown = [],
+    startDate,
+    endDate,
+    year,
     lastUpdatedAt,
     expiresAt,
     includeContactDetails,
@@ -153,6 +173,11 @@ export const SharedReportPage = () => {
                 <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-orange-500/20 text-orange-400 border border-orange-500/30">
                   {reportType} LIVE REPORT
                 </span>
+                {startDate && endDate && (
+                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase bg-white/10 text-neutral-300 border border-white/10">
+                    {startDate} → {endDate}
+                  </span>
+                )}
                 <span className="text-xs text-neutral-400">•</span>
                 <span className="text-xs text-neutral-300">
                   Last synchronized:{' '}
@@ -163,7 +188,7 @@ export const SharedReportPage = () => {
               </div>
               <h1 className="text-xl md:text-2xl font-black tracking-tight">{reportName}</h1>
               <p className="text-xs text-neutral-400 mt-1">
-                Data reflects live team assignments, video stages, and completions. Refresh to view updates.
+                Data reflects live team assignments, video stages, and completions directly from TiDB database. Refresh to view updates.
               </p>
             </div>
 
@@ -228,148 +253,330 @@ export const SharedReportPage = () => {
           />
         </div>
 
-        {/* Employee Performance Overview */}
-        {byEmployee && byEmployee.length > 0 && (
+        {/* ANNUAL VIEW: Month-by-Month Production Progression */}
+        {reportType === 'ANNUAL' && monthlyTrends && monthlyTrends.length > 0 && (
           <div className="bg-white rounded-3xl p-5 md:p-6 border border-slate-200/90 shadow-xs space-y-4">
-            <h2 className="text-sm md:text-base font-black text-slate-900 tracking-tight">
-              Workforce Team Summary
-            </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {byEmployee.map((emp) => (
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <BarChart3 className="w-5 h-5 text-vcube-orange" />
+                <h2 className="text-sm md:text-base font-black text-slate-900 tracking-tight">
+                  Annual Month-by-Month Production Progression ({year || 2026})
+                </h2>
+              </div>
+              <span className="text-xs text-slate-400 font-bold">12-Month Cadence</span>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+              {monthlyTrends.map((m) => {
+                const completionPct = m.total > 0 ? Math.round((m.completed / m.total) * 100) : 0;
+                const hasActivity = m.total > 0;
+                return (
+                  <div
+                    key={m.monthIndex}
+                    className={`p-3.5 rounded-2xl border transition-all ${
+                      hasActivity
+                        ? 'bg-gradient-to-br from-orange-50/50 via-white to-amber-50/30 border-orange-200/90 shadow-2xs'
+                        : 'bg-slate-50/60 border-slate-200/60 opacity-60'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-black text-slate-800">{m.monthName}</span>
+                      {hasActivity && (
+                        <span className="text-[10px] font-black text-vcube-orange px-1.5 py-0.5 rounded bg-orange-100">
+                          {completionPct}%
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between text-[11px]">
+                        <span className="text-slate-400 font-medium">Assigned</span>
+                        <strong className="text-slate-800 font-bold">{m.total}</strong>
+                      </div>
+                      <div className="flex items-center justify-between text-[11px]">
+                        <span className="text-emerald-600 font-medium">Done</span>
+                        <strong className="text-emerald-700 font-bold">{m.completed}</strong>
+                      </div>
+                      <div className="flex items-center justify-between text-[11px]">
+                        <span className="text-amber-600 font-medium">Pending</span>
+                        <strong className="text-amber-700 font-bold">{m.pending}</strong>
+                      </div>
+                    </div>
+
+                    {hasActivity && (
+                      <div className="mt-2.5 w-full bg-slate-200/70 rounded-full h-1.5 overflow-hidden">
+                        <div
+                          className="bg-gradient-to-r from-vcube-orange to-emerald-500 h-full rounded-full transition-all duration-500"
+                          style={{ width: `${completionPct}%` }}
+                        />
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* STAGE BREAKDOWN (If present) */}
+        {stageBreakdown && stageBreakdown.length > 0 && (
+          <div className="bg-white rounded-3xl p-5 md:p-6 border border-slate-200/90 shadow-xs space-y-4">
+            <div className="flex items-center gap-2">
+              <Layers className="w-5 h-5 text-vcube-orange" />
+              <h2 className="text-sm md:text-base font-black text-slate-900 tracking-tight">
+                Production Pipeline Stage Distribution
+              </h2>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+              {stageBreakdown.map((s) => (
                 <div
-                  key={emp.employee_id}
-                  className="p-4 rounded-2xl border border-slate-200/90 bg-white shadow-2xs space-y-2"
+                  key={s.stage}
+                  className="p-3.5 rounded-2xl border border-slate-200/90 bg-slate-50/50 shadow-2xs space-y-2"
                 >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h4 className="text-xs font-bold text-slate-900">{emp.employee_name}</h4>
-                      <span className="text-[10px] text-slate-400 font-mono">
-                        {emp.employee_code} • {emp.employee_role}
-                      </span>
-                    </div>
-                    <span className="text-xs font-black text-vcube-orange px-2 py-0.5 rounded-lg bg-orange-50 border border-orange-200">
-                      {emp.completion_percentage}%
-                    </span>
+                  <span className="text-xs font-bold text-slate-800 block truncate">{s.stage}</span>
+                  <div className="flex items-baseline justify-between">
+                    <span className="text-lg font-black text-slate-900">{s.total}</span>
+                    <span className="text-[10px] text-slate-400 font-bold">tasks</span>
                   </div>
-
-                  <div className="grid grid-cols-4 gap-1 text-center pt-2 border-t border-slate-100 text-[11px]">
+                  <div className="grid grid-cols-2 gap-1 text-[10px] pt-2 border-t border-slate-200/60">
                     <div>
-                      <span className="text-[9px] uppercase text-slate-400 font-bold block">Assigned</span>
-                      <strong className="text-slate-800">{emp.total_assigned}</strong>
+                      <span className="text-slate-400 block">Done</span>
+                      <strong className="text-emerald-600">{s.completed}</strong>
                     </div>
                     <div>
-                      <span className="text-[9px] uppercase text-slate-400 font-bold block">Done</span>
-                      <strong className="text-emerald-600">{emp.completed}</strong>
-                    </div>
-                    <div>
-                      <span className="text-[9px] uppercase text-slate-400 font-bold block">Pending</span>
-                      <strong className="text-amber-600">{emp.pending + emp.in_progress}</strong>
-                    </div>
-                    <div>
-                      <span className="text-[9px] uppercase text-slate-400 font-bold block">Delayed</span>
-                      <strong className="text-rose-600">{emp.delayed}</strong>
+                      <span className="text-slate-400 block">Active</span>
+                      <strong className="text-amber-600">{s.in_progress + s.pending}</strong>
                     </div>
                   </div>
-
-                  {includeContactDetails && emp.employee_phone && (
-                    <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
-                      <a
-                        href={`tel:${emp.employee_phone}`}
-                        className="text-emerald-700 font-bold flex items-center gap-1 hover:underline"
-                      >
-                        <Phone className="w-3 h-3" />
-                        <span>Call {emp.employee_phone}</span>
-                      </a>
-                    </div>
-                  )}
                 </div>
               ))}
             </div>
           </div>
         )}
 
+        {/* Employee Performance Overview */}
+        {byEmployee && byEmployee.length > 0 && (
+          <div className="bg-white rounded-3xl p-5 md:p-6 border border-slate-200/90 shadow-xs space-y-4">
+            <div>
+              <h2 className="text-sm md:text-base font-black text-slate-900 tracking-tight">
+                Workforce Team Summary
+              </h2>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Click any team member to expand their individual video assignments.
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              {byEmployee.map((emp) => {
+                const isExpanded = expandedEmployees.has(emp.employee_id);
+                return (
+                  <div
+                    key={emp.employee_id}
+                    className="rounded-2xl border border-slate-200/90 bg-white overflow-hidden transition-all shadow-2xs"
+                  >
+                    {/* Summary row */}
+                    <div
+                      onClick={() => toggleEmployeeExpand(emp.employee_id)}
+                      className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-slate-50/80 cursor-pointer transition-colors"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-2xl bg-orange-100 text-vcube-orange font-black flex items-center justify-center shrink-0">
+                          {emp.employee_name?.charAt(0) || 'E'}
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h3 className="text-sm font-bold text-slate-900">{emp.employee_name}</h3>
+                            <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 font-bold">
+                              {emp.employee_code}
+                            </span>
+                          </div>
+                          <p className="text-xs text-slate-500 font-medium">
+                            {emp.employee_role} • {emp.videos_count} unique videos
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-4 text-xs font-semibold">
+                        <div className="text-center">
+                          <span className="text-[10px] text-slate-400 uppercase block font-bold">Assigned</span>
+                          <span className="text-sm font-black text-slate-800">{emp.total_assigned}</span>
+                        </div>
+                        <div className="text-center">
+                          <span className="text-[10px] text-slate-400 uppercase block font-bold">Done</span>
+                          <span className="text-sm font-black text-emerald-600">{emp.completed}</span>
+                        </div>
+                        <div className="text-center">
+                          <span className="text-[10px] text-slate-400 uppercase block font-bold">Pending</span>
+                          <span className="text-sm font-black text-amber-600">{emp.pending + emp.in_progress}</span>
+                        </div>
+                        <div className="text-center">
+                          <span className="text-[10px] text-slate-400 uppercase block font-bold">Delayed</span>
+                          <span className="text-sm font-black text-rose-600">{emp.delayed}</span>
+                        </div>
+                        <div className="text-center min-w-[60px]">
+                          <span className="text-[10px] text-slate-400 uppercase block font-bold">Rate</span>
+                          <span className="text-xs font-black text-vcube-orange px-2 py-0.5 rounded-lg bg-orange-50 border border-orange-200">
+                            {emp.completion_percentage}%
+                          </span>
+                        </div>
+                        {includeContactDetails && emp.employee_phone && (
+                          <a
+                            href={`tel:${emp.employee_phone}`}
+                            onClick={(e) => e.stopPropagation()}
+                            className="p-2 rounded-xl bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors"
+                            title={`Call ${emp.employee_phone}`}
+                          >
+                            <Phone className="w-4 h-4" />
+                          </a>
+                        )}
+                        <div className="text-slate-400">
+                          {isExpanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Expanded individual assignments */}
+                    {isExpanded && emp.assignments && (
+                      <div className="p-4 bg-slate-50/70 border-t border-slate-200/80 space-y-2">
+                        <div className="text-xs font-bold text-slate-700 mb-2">Individual Video Assignments:</div>
+                        <div className="space-y-2">
+                          {emp.assignments.map((asg) => (
+                            <div
+                              key={asg.assignment_id}
+                              className="p-3 bg-white rounded-xl border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2"
+                            >
+                              <div>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-[10px] font-mono font-bold text-vcube-orange">
+                                    {asg.project_code}
+                                  </span>
+                                  <span className="text-[10px] uppercase font-bold text-slate-500">
+                                    {asg.course_name}
+                                  </span>
+                                  <StatusBadge status={asg.status} />
+                                </div>
+                                <h4 className="text-xs font-bold text-slate-900 mt-0.5">{asg.video_title}</h4>
+                                <p className="text-[11px] text-slate-500">
+                                  Stage: <strong className="text-slate-700">{asg.stage_name}</strong>
+                                  {asg.duration_minutes ? ` • ${asg.duration_minutes} mins logged` : ''}
+                                </p>
+                              </div>
+
+                              <div className="text-right text-[11px] text-slate-500">
+                                {asg.completed_at ? (
+                                  <span className="text-emerald-700 font-bold">
+                                    Completed: {new Date(asg.completed_at).toLocaleDateString()}
+                                  </span>
+                                ) : asg.started_at ? (
+                                  <span>Started: {new Date(asg.started_at).toLocaleDateString()}</span>
+                                ) : (
+                                  <span>Scheduled: {asg.scheduled_date ? new Date(asg.scheduled_date).toLocaleDateString() : 'N/A'}</span>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         {/* Detailed Assignment Table */}
         <div className="bg-white rounded-3xl p-5 md:p-6 border border-slate-200/90 shadow-xs space-y-4">
-          <h2 className="text-sm md:text-base font-black text-slate-900 tracking-tight">
-            Assignment Details ({assignments.length})
-          </h2>
-
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 text-slate-500 font-extrabold uppercase text-[10px] tracking-wider border-b border-slate-200">
-                <tr>
-                  <th className="py-3 px-3.5">Employee</th>
-                  <th className="py-3 px-3.5">Video / Assignment</th>
-                  <th className="py-3 px-3.5">Course</th>
-                  <th className="py-3 px-3.5">Stage</th>
-                  <th className="py-3 px-3.5">Status</th>
-                  <th className="py-3 px-3.5">Started</th>
-                  <th className="py-3 px-3.5">Completed</th>
-                  {includeContactDetails && <th className="py-3 px-3.5 text-right">Contact</th>}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 font-medium">
-                {assignments.map((row) => (
-                  <tr key={row.assignment_id} className="hover:bg-slate-50/80 transition-colors">
-                    <td className="py-3 px-3.5">
-                      <div className="font-bold text-slate-900">{row.employee_name}</div>
-                      <div className="text-[10px] text-slate-400 font-mono">
-                        {row.employee_code} • {row.employee_role}
-                      </div>
-                    </td>
-
-                    <td className="py-3 px-3.5 max-w-[200px]">
-                      <span className="text-[10px] font-mono font-bold text-vcube-orange block">
-                        {row.project_code}
-                      </span>
-                      <span className="font-bold text-slate-900 line-clamp-1">{row.video_title}</span>
-                    </td>
-
-                    <td className="py-3 px-3.5 font-bold text-slate-600">
-                      <span className="px-2 py-0.5 rounded-md bg-slate-100 text-[10px] uppercase">
-                        {row.course_name}
-                      </span>
-                    </td>
-
-                    <td className="py-3 px-3.5 font-bold text-slate-800">
-                      {row.stage_name}
-                    </td>
-
-                    <td className="py-3 px-3.5">
-                      <StatusBadge status={row.status} />
-                    </td>
-
-                    <td className="py-3 px-3.5 text-slate-600">
-                      {row.started_at
-                        ? new Date(row.started_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                        : '-'}
-                    </td>
-
-                    <td className="py-3 px-3.5 text-slate-600">
-                      {row.completed_at
-                        ? new Date(row.completed_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                        : '-'}
-                    </td>
-
-                    {includeContactDetails && (
-                      <td className="py-3 px-3.5 text-right">
-                        {row.employee_phone ? (
-                          <a
-                            href={`tel:${row.employee_phone}`}
-                            className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-lg font-bold text-[11px] transition-colors"
-                          >
-                            <Phone className="w-3 h-3" /> Call
-                          </a>
-                        ) : (
-                          <span className="text-[10px] text-slate-400">Unavailable</span>
-                        )}
-                      </td>
-                    )}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm md:text-base font-black text-slate-900 tracking-tight">
+              Assignment Details ({assignments.length})
+            </h2>
           </div>
+
+          {assignments.length === 0 ? (
+            <div className="p-12 text-center bg-slate-50/80 rounded-2xl border border-dashed border-slate-200 text-xs text-slate-400">
+              <FileSpreadsheet className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+              No video production assignments recorded for this period.
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-slate-50 text-slate-500 font-extrabold uppercase text-[10px] tracking-wider border-b border-slate-200">
+                  <tr>
+                    <th className="py-3 px-3.5">Employee</th>
+                    <th className="py-3 px-3.5">Video / Assignment</th>
+                    <th className="py-3 px-3.5">Course</th>
+                    <th className="py-3 px-3.5">Stage</th>
+                    <th className="py-3 px-3.5">Status</th>
+                    <th className="py-3 px-3.5">Started</th>
+                    <th className="py-3 px-3.5">Completed</th>
+                    {includeContactDetails && <th className="py-3 px-3.5 text-right">Contact</th>}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 font-medium">
+                  {assignments.map((row) => (
+                    <tr key={row.assignment_id} className="hover:bg-slate-50/80 transition-colors">
+                      <td className="py-3 px-3.5">
+                        <div className="font-bold text-slate-900">{row.employee_name}</div>
+                        <div className="text-[10px] text-slate-400 font-mono">
+                          {row.employee_code} • {row.employee_role}
+                        </div>
+                      </td>
+
+                      <td className="py-3 px-3.5 max-w-[200px]">
+                        <span className="text-[10px] font-mono font-bold text-vcube-orange block">
+                          {row.project_code}
+                        </span>
+                        <span className="font-bold text-slate-900 line-clamp-1">{row.video_title}</span>
+                      </td>
+
+                      <td className="py-3 px-3.5 font-bold text-slate-600">
+                        <span className="px-2 py-0.5 rounded-md bg-slate-100 text-[10px] uppercase">
+                          {row.course_name}
+                        </span>
+                      </td>
+
+                      <td className="py-3 px-3.5 font-bold text-slate-800">
+                        {row.stage_name}
+                      </td>
+
+                      <td className="py-3 px-3.5">
+                        <StatusBadge status={row.status} />
+                      </td>
+
+                      <td className="py-3 px-3.5 text-slate-600">
+                        {row.started_at
+                          ? new Date(row.started_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                          : '-'}
+                      </td>
+
+                      <td className="py-3 px-3.5 text-slate-600">
+                        {row.completed_at
+                          ? new Date(row.completed_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                          : '-'}
+                      </td>
+
+                      {includeContactDetails && (
+                        <td className="py-3 px-3.5 text-right">
+                          {row.employee_phone ? (
+                            <a
+                              href={`tel:${row.employee_phone}`}
+                              className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-lg font-bold text-[11px] transition-colors"
+                            >
+                              <Phone className="w-3 h-3" /> Call
+                            </a>
+                          ) : (
+                            <span className="text-[10px] text-slate-400">Unavailable</span>
+                          )}
+                        </td>
+                      )}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       </main>
 
@@ -381,4 +588,3 @@ export const SharedReportPage = () => {
     </div>
   );
 };
-

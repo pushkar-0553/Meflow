@@ -814,26 +814,58 @@ export const ReportsPage = () => {
       )}
 
       {/* Share Report Modal */}
-      {shareModalOpen && (
-        <ShareReportModal
-          isOpen={shareModalOpen}
-          onClose={() => setShareModalOpen(false)}
-          reportType={activeTab.toUpperCase()}
-          reportConfig={{
-            startDate: selectedDate,
-            endDate: selectedDate,
-            year: selectedYear,
-            month: selectedMonth,
-            employeeId: selectedEmployee,
-            roleId: selectedRole,
-            courseId: selectedCourse,
-            stage: selectedStage,
-            status: selectedStatus,
-            search,
-          }}
-          reportTitle={`${activeTab.toUpperCase()} Production Report (${selectedDate})`}
-        />
-      )}
+      {shareModalOpen && (() => {
+        let confStartDate = selectedDate;
+        let confEndDate = selectedDate;
+        let title = `Daily Production Report (${selectedDate})`;
+
+        if (activeTab === 'annual') {
+          confStartDate = `${selectedYear}-01-01`;
+          confEndDate = `${selectedYear}-12-31`;
+          title = `Annual Production Report - ${selectedYear}`;
+        } else if (activeTab === 'monthly') {
+          const monthNames = [
+            'January', 'February', 'March', 'April', 'May', 'June',
+            'July', 'August', 'September', 'October', 'November', 'December',
+          ];
+          const lastDay = new Date(selectedYear, selectedMonth, 0).getDate();
+          confStartDate = `${selectedYear}-${String(selectedMonth).padStart(2, '0')}-01`;
+          confEndDate = `${selectedYear}-${String(selectedMonth).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+          title = `Monthly Production Report - ${monthNames[selectedMonth - 1]} ${selectedYear}`;
+        } else if (activeTab === 'weekly') {
+          const d = new Date(selectedDate);
+          const day = d.getDay();
+          const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+          const mon = new Date(d.setDate(diff)).toISOString().slice(0, 10);
+          const sun = new Date(d.setDate(diff + 6)).toISOString().slice(0, 10);
+          confStartDate = mon;
+          confEndDate = sun;
+          title = `Weekly Production Report (${mon} to ${sun})`;
+        } else if (activeTab === 'eod') {
+          title = `End-of-Day (EOD) Summary (${selectedDate})`;
+        }
+
+        return (
+          <ShareReportModal
+            isOpen={shareModalOpen}
+            onClose={() => setShareModalOpen(false)}
+            reportType={activeTab.toUpperCase()}
+            reportConfig={{
+              startDate: confStartDate,
+              endDate: confEndDate,
+              year: selectedYear,
+              month: selectedMonth,
+              employeeId: selectedEmployee,
+              roleId: selectedRole,
+              courseId: selectedCourse,
+              stage: selectedStage,
+              status: selectedStatus,
+              search,
+            }}
+            reportTitle={title}
+          />
+        );
+      })()}
     </div>
   );
 };

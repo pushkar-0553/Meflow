@@ -147,11 +147,35 @@ export const reportShareController = {
         config = {};
       }
 
+      // DYNAMIC DATE BOUND RESOLUTION:
+      // Annual, Monthly, Weekly, and Daily reports must correctly calculate their ranges
+      const reportType = (share.report_type || '').toUpperCase();
+      let startDate = config.startDate;
+      let endDate = config.endDate;
+
+      if (reportType === 'ANNUAL') {
+        const year = config.year || (config.startDate ? new Date(config.startDate).getFullYear() : new Date().getFullYear());
+        startDate = `${year}-01-01`;
+        endDate = `${year}-12-31`;
+      } else if (reportType === 'MONTHLY') {
+        const year = config.year || (config.startDate ? new Date(config.startDate).getFullYear() : new Date().getFullYear());
+        const month = config.month || (config.startDate ? new Date(config.startDate).getMonth() + 1 : new Date().getMonth() + 1);
+        startDate = `${year}-${String(month).padStart(2, '0')}-01`;
+        const lastDay = new Date(year, month, 0).getDate();
+        endDate = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+      } else if (reportType === 'WEEKLY') {
+        startDate = config.weekStart || config.startDate;
+        endDate = config.weekEnd || config.endDate;
+      } else {
+        startDate = config.startDate || config.selectedDate || new Date().toISOString().slice(0, 10);
+        endDate = config.endDate || config.selectedDate || startDate;
+      }
+
       // DYNAMIC LIVE DATA EXECUTION:
       // Query the live database right now according to the saved filters
       const assignments = await getUnifiedAssignments({
-        startDate: config.startDate || config.selectedDate,
-        endDate: config.endDate || config.selectedDate,
+        startDate,
+        endDate,
         employeeId: config.employeeId,
         roleId: config.roleId,
         courseId: config.courseId,
@@ -175,6 +199,48 @@ export const reportShareController = {
       const summary = computeReportSummary(sanitizedAssignments);
       const byEmployee = groupAssignmentsByEmployee(sanitizedAssignments);
 
+      // Month-by-month trends for annual reports
+      let monthlyTrends = null;
+      if (reportType === 'ANNUAL') {
+        const resolvedYear = Number(config.year) || (startDate ? new Date(startDate).getFullYear() : new Date().getFullYear());
+        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        monthlyTrends = monthNames.map((name, idx) => ({
+          monthIndex: idx + 1,
+          monthName: name,
+          total: 0,
+          completed: 0,
+          pending: 0,
+          delayed: 0,
+        }));
+
+        for (const a of sanitizedAssignments) {
+          const d = new Date(a.completed_at || a.started_at || a.assigned_date);
+          if (d.getFullYear() === resolvedYear) {
+            const mIdx = d.getMonth();
+            if (mIdx >= 0 && mIdx < 12) {
+              monthlyTrends[mIdx].total += 1;
+              if (a.status === 'COMPLETED') monthlyTrends[mIdx].completed += 1;
+              else if (a.status === 'OVERDUE') monthlyTrends[mIdx].delayed += 1;
+              else monthlyTrends[mIdx].pending += 1;
+            }
+          }
+        }
+      }
+
+      // Stage-wise breakdown
+      const stages = {};
+      for (const a of sanitizedAssignments) {
+        const sKey = a.stage_name || 'Other';
+        if (!stages[sKey]) {
+          stages[sKey] = { stage: sKey, total: 0, completed: 0, in_progress: 0, pending: 0 };
+        }
+        stages[sKey].total += 1;
+        if (a.status === 'COMPLETED') stages[sKey].completed += 1;
+        else if (a.status === 'IN_PROGRESS') stages[sKey].in_progress += 1;
+        else if (a.status === 'PENDING') stages[sKey].pending += 1;
+      }
+      const stageBreakdown = Object.values(stages);
+
       return successResponse(res, {
         message: 'Live shared report synchronized successfully.',
         data: {
@@ -186,9 +252,16 @@ export const reportShareController = {
           expiresAt: share.expires_at,
           createdAt: share.created_at,
           lastUpdatedAt: new Date().toISOString(),
+          period: reportType,
+          startDate,
+          endDate,
+          year: config.year || (reportType === 'ANNUAL' ? new Date().getFullYear() : undefined),
+          month: config.month || (reportType === 'MONTHLY' ? new Date().getMonth() + 1 : undefined),
           config,
           summary,
           byEmployee,
+          monthlyTrends,
+          stageBreakdown,
           assignments: sanitizedAssignments,
         },
       });
