@@ -48,7 +48,7 @@ export const courseController = {
         });
       }
 
-      const [result] = await query(
+      const result = await query(
         `INSERT INTO courses (code, name, description, is_active)
          VALUES (?, ?, ?, TRUE)`,
         [data.code.trim().toUpperCase(), data.name.trim(), data.description || null]

@@ -26,8 +26,11 @@ export const employeeController = {
       }
 
       if (role_id) {
-        conditions.push('u.role_id = ?');
-        params.push(parseInt(role_id, 10));
+        const parsedRoleId = parseInt(role_id, 10);
+        if (!isNaN(parsedRoleId)) {
+          conditions.push('u.role_id = ?');
+          params.push(parsedRoleId);
+        }
       }
 
       if (department && department !== 'ALL') {
@@ -36,8 +39,11 @@ export const employeeController = {
       }
 
       if (reporting_manager_id) {
-        conditions.push('u.reporting_manager_id = ?');
-        params.push(parseInt(reporting_manager_id, 10));
+        const parsedManagerId = parseInt(reporting_manager_id, 10);
+        if (!isNaN(parsedManagerId)) {
+          conditions.push('u.reporting_manager_id = ?');
+          params.push(parsedManagerId);
+        }
       }
 
       if (search && search.trim()) {
@@ -75,11 +81,11 @@ export const employeeController = {
         params
       );
 
-      // Distinct departments and roles for filters
-      const [departments] = await query(
-        `SELECT DISTINCT department FROM users WHERE department IS NOT NULL ORDER BY department ASC`
+      // Distinct departments, managers, and roles for directory filters
+      const departments = await query(
+        `SELECT DISTINCT department FROM users WHERE department IS NOT NULL AND department != '' ORDER BY department ASC`
       );
-      const [managers] = await query(
+      const managers = await query(
         `SELECT DISTINCT m.id, m.name, r.name AS role_name
          FROM users m
          JOIN roles r ON m.role_id = r.id
@@ -87,14 +93,18 @@ export const employeeController = {
             OR r.code IN ('ADMIN', 'DM_HEAD', 'PRODUCTION_MGR')
          ORDER BY m.name ASC`
       );
+      const roles = await query(
+        `SELECT id, name, code FROM roles ORDER BY name ASC`
+      );
 
       return successResponse(res, {
         message: 'Employee directory synchronized successfully.',
         data: {
           employees: users,
           filterMeta: {
-            departments: departments.map((d) => d.department),
-            managers,
+            departments: (departments || []).map((d) => d.department).filter(Boolean),
+            managers: managers || [],
+            roles: roles || [],
           },
           totalCount: users.length,
         },
@@ -163,11 +173,15 @@ export const employeeController = {
   async updateEmployee(req, res, next) {
     try {
       const employeeId = parseInt(req.params.employeeId, 10);
+      if (isNaN(employeeId)) {
+        return errorResponse(res, { statusCode: 400, message: 'Invalid employee ID.' });
+      }
       const isSelf = req.user?.id === employeeId;
       const isAdminOrManager = Boolean(
         req.user?.is_system_admin ||
         req.user?.role_code === 'ADMIN' ||
-        req.user?.role_code === 'DM_HEAD'
+        req.user?.role_code === 'DM_HEAD' ||
+        req.user?.role_code === 'PRODUCTION_MGR'
       );
 
       if (!isSelf && !isAdminOrManager) {

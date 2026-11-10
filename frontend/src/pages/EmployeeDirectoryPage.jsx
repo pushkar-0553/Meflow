@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import apiClient from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -28,7 +28,9 @@ import {
 export const EmployeeDirectoryPage = () => {
   const { user, isAdmin } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const toast = useToast();
+  const inAdminConsole = location.pathname.startsWith('/admin');
 
   const [employees, setEmployees] = useState([]);
   const [departments, setDepartments] = useState([]);
@@ -56,32 +58,29 @@ export const EmployeeDirectoryPage = () => {
         status: selectedStatus,
       };
 
-      const [dirRes, rolesRes] = await Promise.all([
-        apiClient.get('/employees/directory', { params }),
-        apiClient.get('/roles'),
-      ]);
+      const dirRes = await apiClient.get('/employees/directory', { params });
 
       if (dirRes.success && dirRes.data) {
         setEmployees(dirRes.data.employees || []);
         if (dirRes.data.filterMeta) {
           setDepartments(dirRes.data.filterMeta.departments || []);
           setManagers(dirRes.data.filterMeta.managers || []);
+          setRoles(dirRes.data.filterMeta.roles || []);
         }
       }
-
-      if (rolesRes.success) {
-        setRoles(rolesRes.data || []);
-      }
     } catch (err) {
-      toast.error('Failed to load employee workforce directory.');
+      toast.error(err.message || 'Failed to load employee workforce directory.');
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchDirectory();
-  }, [selectedRole, selectedDepartment, selectedManager, selectedStatus]);
+    const timer = setTimeout(() => {
+      fetchDirectory();
+    }, search ? 250 : 0);
+    return () => clearTimeout(timer);
+  }, [search, selectedRole, selectedDepartment, selectedManager, selectedStatus]);
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
@@ -321,7 +320,7 @@ export const EmployeeDirectoryPage = () => {
 
                   {/* View Details Profile action */}
                   <button
-                    onClick={() => navigate(`/employees/${emp.id}`)}
+                    onClick={() => navigate(inAdminConsole ? `/admin/directory/${emp.id}` : `/employees/${emp.id}`)}
                     className="p-2 bg-neutral-900 hover:bg-vcube-orange text-white rounded-xl transition-colors flex items-center justify-center min-h-[38px] min-w-[38px] cursor-pointer"
                     title="View Employee Profile & Tasks"
                   >
@@ -339,7 +338,7 @@ export const EmployeeDirectoryPage = () => {
         <InviteEmployeeModal
           isOpen={inviteModalOpen}
           onClose={() => setInviteModalOpen(false)}
-          onSuccess={fetchDirectory}
+          onUserInvited={fetchDirectory}
         />
       )}
     </div>

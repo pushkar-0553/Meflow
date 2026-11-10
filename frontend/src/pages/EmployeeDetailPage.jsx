@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import apiClient from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -21,6 +21,7 @@ import {
   X,
   ExternalLink,
   ChevronRight,
+  ArrowRight,
   Shield,
   Layers,
 } from 'lucide-react';
@@ -28,8 +29,10 @@ import {
 export const EmployeeDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const toast = useToast();
   const { user, isAdmin } = useAuth();
+  const inAdminConsole = location.pathname.startsWith('/admin');
 
   const [employeeData, setEmployeeData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -59,8 +62,8 @@ export const EmployeeDetailPage = () => {
         setReportingManagerId(p.reporting_manager_id || '');
       }
 
-      if (dirRes.success && dirRes.data?.filterMeta?.managers) {
-        setManagersList(dirRes.data.filterMeta.managers || []);
+      if (dirRes.success && Array.isArray(dirRes.data?.filterMeta?.managers)) {
+        setManagersList(dirRes.data.filterMeta.managers);
       }
     } catch (err) {
       toast.error('Failed to load employee details.');
@@ -105,7 +108,7 @@ export const EmployeeDetailPage = () => {
       <div className="p-8 text-center space-y-3">
         <h2 className="text-base font-bold text-slate-800">Employee record not found</h2>
         <button
-          onClick={() => navigate('/employees')}
+          onClick={() => navigate(inAdminConsole ? '/admin/directory' : '/employees')}
           className="text-xs font-bold text-vcube-orange hover:underline"
         >
           &larr; Return to directory
@@ -127,7 +130,7 @@ export const EmployeeDetailPage = () => {
       {/* Top back button */}
       <div>
         <button
-          onClick={() => navigate('/employees')}
+          onClick={() => navigate(inAdminConsole ? '/admin/directory' : '/employees')}
           className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-slate-800 transition-colors cursor-pointer"
         >
           <ArrowLeft className="w-4 h-4" />
@@ -375,7 +378,7 @@ export const EmployeeDetailPage = () => {
                 <div className="flex items-center gap-2 shrink-0">
                   {asg.source_type === 'VIDEO_PROJECT' && (
                     <button
-                      onClick={() => navigate(`/projects/${asg.project_id}`)}
+                      onClick={() => navigate(inAdminConsole ? `/admin/projects/${asg.project_id}` : `/projects/${asg.project_id}`)}
                       className="px-3.5 py-2 bg-neutral-900 hover:bg-vcube-orange text-white rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5 cursor-pointer"
                     >
                       <span>Open Workspace</span>
